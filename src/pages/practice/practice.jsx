@@ -489,7 +489,9 @@ export default function Practice({ fixedMode }) {
     Taro.showLoading({ title: '识别中…', mask: true })
     setDVoiceMsg('识别中…')
     try {
-      const res = await fetch(`${API_BASE}/api/asr`, {
+      const expect = dictWord.en || ''
+      const url = `${API_BASE}/api/asr?expect=${encodeURIComponent(expect)}`
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': blob.type || 'audio/webm' },
         body: blob
@@ -500,14 +502,17 @@ export default function Practice({ fixedMode }) {
         return
       }
       const data = await res.json()
-      const text = (data && data.text ? data.text : '').trim()
-      if (!text) {
+      const heard = (data && data.text ? data.text : '').trim()
+      const match = data && data.match ? data.match : ''
+      if (!heard && !match) {
         setDVoiceMsg('没听清，再说一次吧')
         return
       }
       setDVoiceMsg('')
-      setDInput(text)
-      dictCheck(text)
+      // 说得含糊但服务器判定对上了，直接用正确词，避免显示乱码
+      const finalText = match || heard
+      setDInput(finalText)
+      dictCheck(finalText)
     } catch (e) {
       Taro.hideLoading()
       setDVoiceMsg('连不上识别服务：' + (e && e.message ? e.message : '网络错误'))
