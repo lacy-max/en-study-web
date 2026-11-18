@@ -1153,6 +1153,17 @@
   margin-bottom: 16px;
 }
 
+.voice-btn.listening {
+  background: #ede9fe;
+  border: 2px solid #c4b5fd;
+  animation: voicePulse 1.1s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
 .dict-input {
   width: 100%;
   height: 132px;

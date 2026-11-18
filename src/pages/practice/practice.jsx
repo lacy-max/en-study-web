@@ -421,15 +421,91 @@ export default function Practice({ fixedMode }) {
   const [dStage, setDStage] = useState('write')
   const [dInput, setDInput] = useState('')
   const [dChecked, setDChecked] = useState(null)
+  const [dListening, setDListening] = useState(false)
+  const recRef = useRef(null)
   const dictWord = dictWords[dIdx] || { en: '', cn: '' }
 
-  const dictSubmit = () => {
+  // 判题：忽略大小写、首尾空格以及标点
+  const normalizeAnswer = v =>
+    String(v || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9' ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  const dictCheck = value => {
     if (!dictWord.en || dChecked === true) return
-    const ok = dInput.trim().toLowerCase() === dictWord.en.trim().toLowerCase()
+    const ok = normalizeAnswer(value) === normalizeAnswer(dictWord.en)
     setDChecked(ok)
     addScore(ok)
     flash(ok)
     if (!ok) addWrong({ en: dictWord.en, zh: dictWord.cn, chapterId })
+  }
+
+  const dictSubmit = () => dictCheck(dInput)
+
+  /** 语音输入：用浏览器/系统的语音识别，小朋友不用打字 */
+  const getRecognition = () => {
+    try {
+      const RA = window.SpeechRecognition || window.webkitSpeechRecognition
+      return RA ? new RA() : null
+    } catch (e) {
+      return null
+    }
+  }
+
+  const stopVoice = () => {
+    try {
+      recRef.current && recRef.current.stop()
+    } catch (e) {}
+    setDListening(false)
+  }
+
+  const toggleVoice = () => {
+    if (dListening) {
+      stopVoice()
+      return
+    }
+    const rec = getRecognition()
+    if (!rec) {
+      Taro.showToast({ title: '当前浏览器不支持语音输入', icon: 'none' })
+      return
+    }
+    rec.lang = 'en-US'
+    rec.interimResults = true
+    rec.continuous = false
+    rec.maxAlternatives = 1
+
+    let heard = ''
+    rec.onresult = e => {
+      let txt = ''
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript
+      heard = txt.trim()
+      setDInput(heard)
+    }
+    rec.onerror = ev => {
+      setDListening(false)
+      const title =
+        ev && ev.error === 'not-allowed'
+          ? '麦克风没开权限，允许后再试'
+          : '没听清，再说一次吧'
+      Taro.showToast({ title, icon: 'none' })
+    }
+    rec.onend = () => {
+      setDListening(false)
+      if (heard) {
+        setDInput(heard)
+        dictCheck(heard)
+      }
+    }
+    recRef.current = rec
+    try {
+      rec.start()
+      setDListening(true)
+    } catch (e) {
+      setDListening(false)
+      Taro.showToast({ title: '语音输入启动失败', icon: 'none' })
+    }
   }
 
   const dictNext = () => {
@@ -699,6 +775,14 @@ export default function Practice({ fixedMode }) {
                   <View className='ghost-btn' onClick={() => speak(dictWord.en, settings.rate)}>
                     <Text className='ghost-btn-t'>🔊 听发音</Text>
                   </View>
+                  <View
+                    className={dListening ? 'ghost-btn voice-btn listening' : 'ghost-btn voice-btn'}
+                    onClick={toggleVoice}
+                  >
+                    <Text className='ghost-btn-t'>
+                      {dListening ? '🎙️ 正在听，点我结束' : '🎤 语音输入'}
+                    </Text>
+                  </View>
                 </View>
                 <Input
                   className='dict-input'
@@ -710,11 +794,16 @@ export default function Practice({ fixedMode }) {
                 />
                 {dChecked === true && <Text className='dict-ok'>✓ 写对了</Text>}
                 {dChecked === false && <Text className='dict-bad'>正确答案：{dictWord.en}</Text>}
-                {dChecked === null && (
-                  <View className='primary-btn' onClick={dictSubmit}>
-                    <Text className='primary-btn-t'>检查</Text>
-                  </View>
-                )}
+
+                {/* 答对：检查按钮变成「继续」；答错：变成「下一个」 */}
+                <View
+                  className='primary-btn'
+                  onClick={dChecked === true ? dictNext : dChecked === false ? dictNext : dictSubmit}
+                >
+                  <Text className='primary-btn-t'>
+                    {dChecked === true ? '继续' : dChecked === false ? '下一个' : '检查'}
+                  </Text>
+                </View>
               </>
             ) : (
               <>
@@ -728,16 +817,11 @@ export default function Practice({ fixedMode }) {
               </>
             )}
 
-            {(dChecked !== null || dStage === 'read') &&
-              (dStage === 'read' ? (
-                <View className='primary-btn' onClick={dictNext}>
-                  <Text className='primary-btn-t'>我读完了</Text>
-                </View>
-              ) : (
-                <View className='ghost-btn' onClick={dictNext}>
-                  <Text className='ghost-btn-t'>下一个</Text>
-                </View>
-              ))}
+            {dStage === 'read' && (
+              <View className='primary-btn' onClick={dictNext}>
+                <Text className='primary-btn-t'>我读完了</Text>
+              </View>
+            )}
           </View>
         </View>
       )}
