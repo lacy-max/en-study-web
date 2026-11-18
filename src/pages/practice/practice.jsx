@@ -318,8 +318,8 @@ export default function Practice({ fixedMode }) {
     const words = chapter.words || []
     return words.map((w, i) => {
       const wantSent = i % 3 === 0
-      const ans = w.answer || w.en
-      const si = w.sentence ? String(w.sentence).toLowerCase().indexOf(String(ans).toLowerCase()) : -1
+      // 只挖「这个词本身」：句子不含该词就不出挖空题，避免答案露在句子里
+      const si = w.sentence && w.en ? String(w.sentence).toLowerCase().indexOf(String(w.en).toLowerCase()) : -1
 
       if (wantSent && si >= 0) {
         const distract = shuffleArr(words.filter(x => x.en !== w.en)).slice(0, 3)
@@ -329,8 +329,8 @@ export default function Practice({ fixedMode }) {
           question: '',
           audio: w.sentence,
           before: w.sentence.slice(0, si),
-          after: w.sentence.slice(si + ans.length),
-          blankText: ans,
+          after: w.sentence.slice(si + String(w.en).length),
+          blankText: w.en,
           answerText: w.en,
           cnHint: w.sentenceCn || '',
           options: shuffleArr([w].concat(distract)).map(o => ({ key: o.en, label: o.en }))
@@ -402,8 +402,8 @@ export default function Practice({ fixedMode }) {
   const fillPool = useMemo(
     () =>
       (chapter.words || []).filter(w => {
-        const ans = (w.answer || w.en || '').toLowerCase()
-        return w.sentence && ans && String(w.sentence).toLowerCase().indexOf(ans) >= 0
+        if (!w || !w.en || !w.sentence) return false
+        return String(w.sentence).toLowerCase().indexOf(String(w.en).toLowerCase()) >= 0
       }),
     [chapter]
   )
@@ -423,8 +423,11 @@ export default function Practice({ fixedMode }) {
   const [dInput, setDInput] = useState('')
   const [dChecked, setDChecked] = useState(null)
   const [dListening, setDListening] = useState(false)
+  const [dVoiceMsg, setDVoiceMsg] = useState('')
   const recRef = useRef(null)
   const recorderRef = useRef(null)
+  const voiceTimer = useRef(null)
+  const voicedRef = useRef(false)
   const dictWord = dictWords[dIdx] || { en: '', cn: '' }
 
   // 判题：忽略大小写、首尾空格以及标点
@@ -484,49 +487,83 @@ export default function Practice({ fixedMode }) {
 
   const uploadVoice = async blob => {
     Taro.showLoading({ title: '识别中…', mask: true })
+    setDVoiceMsg('识别中…')
     try {
       const res = await fetch(`${API_BASE}/api/asr`, {
         method: 'POST',
         headers: { 'Content-Type': blob.type || 'audio/webm' },
         body: blob
       })
-      const data = await res.json()
       Taro.hideLoading()
-      const text = (data && data.text ? data.text : '').trim()
-      if (!text) {
-        Taro.showToast({ title: '没听清，再说一次吧', icon: 'none' })
+      if (!res.ok) {
+        setDVoiceMsg('识别服务出错（' + res.status + '），请再试一次')
         return
       }
+      const data = await res.json()
+      const text = (data && data.text ? data.text : '').trim()
+      if (!text) {
+        setDVoiceMsg('没听清，再说一次吧')
+        return
+      }
+      setDVoiceMsg('')
       setDInput(text)
       dictCheck(text)
     } catch (e) {
       Taro.hideLoading()
-      Taro.showToast({ title: '识别服务没连上', icon: 'none' })
+      setDVoiceMsg('连不上识别服务：' + (e && e.message ? e.message : '网络错误'))
     }
   }
 
   const startRecord = async () => {
+    setDVoiceMsg('')
+    if (voiceTimer.current) clearTimeout(voiceTimer.current)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+      const mime = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : ''
       const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
       const chunks = []
+      voicedRef.current = false
       rec.ondataavailable = e => {
-        if (e.data && e.data.size > 0) chunks.push(e.data)
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data)
+          voicedRef.current = true
+        }
       }
       rec.onstop = () => {
-        stream.getTracks().forEach(t => t.stop())
+        if (voiceTimer.current) clearTimeout(voiceTimer.current)
+        try {
+          stream.getTracks().forEach(t => t.stop())
+        } catch (e) {}
         setDListening(false)
-        if (!chunks.length) return
+        if (!chunks.length) {
+          setDVoiceMsg('没录到声音，请靠近麦克风再说一次')
+          return
+        }
         const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
         uploadVoice(blob)
       }
       recorderRef.current = rec
-      rec.start()
+      rec.start(200) // 期间分片，避免停止时一次拿到空数据
       setDListening(true)
+      setDVoiceMsg('正在录，说一句英文…')
+      // 4 秒自动结束，小朋友不用点第二次
+      voiceTimer.current = setTimeout(() => {
+        try {
+          if (rec.state !== 'inactive') rec.stop()
+        } catch (e) {}
+      }, 4000)
     } catch (e) {
       setDListening(false)
-      Taro.showToast({ title: '麦克风没开权限，允许后再试', icon: 'none' })
+      const msg =
+        e && e.name === 'NotAllowedError'
+          ? '麦克风没开权限，允许后再试'
+          : '麦克风打不开：' + (e && e.name ? e.name : '未知错误')
+      setDVoiceMsg(msg)
+      Taro.showToast({ title: msg, icon: 'none' })
     }
   }
 
@@ -535,14 +572,16 @@ export default function Practice({ fixedMode }) {
       stopVoice()
       return
     }
+    // 优先走「自己录音 → 服务端识别」：更稳定，各家浏览器结果一致
+    if (hasRecorder()) {
+      startRecord()
+      return
+    }
     const rec = getRecognition()
     if (!rec) {
-      // iPhone Safari 没有语音识别接口 → 录音上传，交给服务端识别
-      if (hasRecorder()) {
-        startRecord()
-        return
-      }
-      Taro.showToast({ title: '当前浏览器不支持语音输入', icon: 'none' })
+      const msg = '这台设备的浏览器不支持录音（需 https 打开）'
+      setDVoiceMsg(msg)
+      Taro.showToast({ title: msg, icon: 'none' })
       return
     }
     rec.lang = 'en-US'
@@ -600,7 +639,7 @@ export default function Practice({ fixedMode }) {
   useEffect(() => {
     if (!fillPool.length) return
     const w = fillPool[Math.min(fillIdx, fillPool.length - 1)]
-    const ans = w.answer || w.en
+    const ans = w.en
     const i = String(w.sentence).toLowerCase().indexOf(String(ans).toLowerCase())
     const before = w.sentence.slice(0, i)
     const after = w.sentence.slice(i + ans.length)
@@ -858,6 +897,7 @@ export default function Practice({ fixedMode }) {
                     </Text>
                   </View>
                 </View>
+                {dVoiceMsg ? <Text className='voice-msg'>{dVoiceMsg}</Text> : null}
                 <Input
                   className='dict-input'
                   value={dInput}
