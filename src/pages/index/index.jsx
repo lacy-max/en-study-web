@@ -143,7 +143,7 @@ export default function Index() {
               </Text>
               {visited(c.id) && isCurrent && <Text className='kcard-star'>⭐</Text>}
               {done && <Text className='kcard-check'>✓</Text>}
-              {!done && (doneCount(c.id) > 0 || visited(c.id)) && (
+              {unlocked && !done && (doneCount(c.id) > 0 || visited(c.id)) && (
                 <>
                   <View className='kcard-prog'>
                     <View
