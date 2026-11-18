@@ -13,11 +13,11 @@ function detectApiBase() {
     if (typeof window !== 'undefined' && window.location && window.location.hostname) {
       const host = window.location.hostname
       const proto = window.location.protocol === 'https:' ? 'https:' : 'http:'
-      // https（隧道/正式域名）时后端与页面同源（由反向代理转发 /api），不能再加 :8000
-      if (proto === 'https:') {
-        return `${window.location.protocol}//${window.location.host}`
-      }
-      return `${proto}//${host}:8000`
+      const port = window.location.port
+      // 本地开发/预览端口才需要手动指到 8000；正式环境（80/443/8000）与页面同源，由 nginx 反代 /api
+      const DEV_PORTS = ['10105', '10086', '10200']
+      if (DEV_PORTS.indexOf(port) >= 0) return `${proto}//${host}:8000`
+      return `${proto}//${window.location.host}`
     }
   } catch (e) {}
   return FALLBACK_API
