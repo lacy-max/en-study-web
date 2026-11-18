@@ -703,7 +703,7 @@ export default function Practice({ fixedMode }) {
                 <Input
                   className='dict-input'
                   value={dInput}
-                  placeholder='在这里写英文'
+                  placeholder='请输入'
                   confirmType='done'
                   onInput={e => setDInput(e.detail.value)}
                   onConfirm={dictSubmit}

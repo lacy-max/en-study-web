@@ -1157,6 +1157,9 @@
   width: 100%;
   height: 132px;
   min-height: 132px;
+  display: flex;
+  align-items: center;
+  line-height: 132px;
   background: #f5f6fc;
   border: 2px solid #e6e9f5;
   border-radius: 24px;
@@ -1169,11 +1172,16 @@
 }
 
 .dict-input input,
-.dict-input .taro-input {
-  height: 128px;
+.dict-input .taro-input,
+.dict-input .weui-input {
+  height: 100%;
+  line-height: 128px;
   font-size: 28px;
   font-weight: 500;
   color: #2f3552;
+  border: none;
+  background: transparent;
+  vertical-align: middle;
 }
 
 .dict-input::placeholder {
