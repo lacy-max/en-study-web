@@ -13,6 +13,10 @@ function detectApiBase() {
     if (typeof window !== 'undefined' && window.location && window.location.hostname) {
       const host = window.location.hostname
       const proto = window.location.protocol === 'https:' ? 'https:' : 'http:'
+      // https（隧道/正式域名）时后端与页面同源（由反向代理转发 /api），不能再加 :8000
+      if (proto === 'https:') {
+        return `${window.location.protocol}//${window.location.host}`
+      }
       return `${proto}//${host}:8000`
     }
   } catch (e) {}
