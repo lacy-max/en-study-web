@@ -105,3 +105,30 @@
   font-size: 24px;
   color: #8d93ad;
 }
+
+.ex-prog {
+  margin-top: 14px;
+  height: 10px;
+  border-radius: 10px;
+  background: #e9ecf6;
+  overflow: hidden;
+}
+
+.ex-prog-in {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #c8a887, #b08968);
+}
+
+.ex-prog-t {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+  color: #9aa2bd;
+}
+
+.ex-done {
+  font-size: 20px;
+  color: #b08968;
+  font-weight: 600;
+}

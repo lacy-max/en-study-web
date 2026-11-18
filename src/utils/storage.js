@@ -31,13 +31,17 @@ function readAll() {
 }
 
 export function getChapterProgress(chapterId) {
-  return readAll()[chapterId] || { maxScore: 0, lastStudyAt: 0, doneDays: [] }
+  const p = readAll()[chapterId]
+  return p || { maxScore: 0, lastStudyAt: 0, doneDays: [], modes: {} }
 }
 
 export function saveChapterProgress(chapterId, patch) {
   const all = readAll()
-  const old = all[chapterId] || { maxScore: 0, lastStudyAt: 0, doneDays: [] }
-  all[chapterId] = { ...old, ...patch, lastStudyAt: Date.now() }
+  const old = all[chapterId] || { maxScore: 0, lastStudyAt: 0, doneDays: [], modes: {} }
+  const merged = { ...old, ...patch, lastStudyAt: Date.now() }
+  // 练习环节完成情况按并集合并，不会互相覆盖
+  merged.modes = { ...(old.modes || {}), ...((patch && patch.modes) || {}) }
+  all[chapterId] = merged
   try {
     Taro.setStorageSync(PROGRESS_KEY, all)
   } catch (e) {}

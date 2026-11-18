@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { View, Text, Image, Canvas, Slider, Switch, Input } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { chapters as fallbackChapters } from '../../data/chapters'
-import { loadChapters, findChapter } from '../../utils/api'
+import { loadChapters, findChapter, getPracticeStates, savePracticeState } from '../../utils/api'
 import { API_BASE } from '../../utils/config'
 import { speak, warmTTS } from '../../utils/tts'
 import { playWrong } from '../../utils/sfx'
@@ -102,6 +102,34 @@ export default function Practice({ fixedMode }) {
   }, [])
   const chapter = useMemo(() => findChapter(chaptersList, chapterId), [chapterId, chaptersList])
 
+  // 从服务端恢复当前环节进度（只恢复「读与写」这一条链路，其它模式各自结算）
+  useEffect(() => {
+    if (!chapter || !chapter.words || !chapter.words.length || stateLoaded.current) return
+    stateLoaded.current = true
+    getPracticeStates(chapterId).then(res => {
+      const st = res && res.states && res.states[mode]
+      if (!st || st.finished) return
+      const words = (chapter.words || []).filter(w => w && w.en)
+      const idx = Math.min(Math.max(0, Number(st.idx) || 0), Math.max(0, words.length - 1))
+      resultsRef.current = st.results || {}
+      setScore(Number(st.score) || 0)
+      scoreRef.current = Number(st.score) || 0
+      setCombo(Number(st.combo) || 0)
+      comboRef.current = Number(st.combo) || 0
+      if (mode === 'dictation') {
+        setDIdx(idx)
+        const cur = words[idx]
+        const r = cur && resultsRef.current[cur.en]
+        if (r === 'ok') {
+          setDInput(cur.en)
+          setDChecked(true)
+        } else if (r === 'bad') {
+          setDChecked(false)
+        }
+      }
+    })
+  }, [chapter, chapterId, mode])
+
   const [settings, setSettings] = useState(getSettings())
   const [mode, setMode] = useState(fixedMode || 'match')
   const [score, setScore] = useState(0)
@@ -114,6 +142,21 @@ export default function Practice({ fixedMode }) {
   const comboRef = useRef(0)
   const [feedback, setFeedback] = useState(null)
   const [showResult, setShowResult] = useState(false)
+
+  // 答题结果与当前进度：存到服务端，刷新/换手机都能接着上次
+  const resultsRef = useRef({})
+  const stateLoaded = useRef(false)
+  const persistState = (nextIdx, opts = {}) => {
+    try {
+      savePracticeState(chapterId, mode, {
+        idx: nextIdx === undefined ? dIdx : nextIdx,
+        score: scoreRef.current,
+        combo: comboRef.current,
+        results: resultsRef.current,
+        finished: opts.finished || false
+      })
+    } catch (e) {}
+  }
 
   // 画布像素换算：按容器实测宽度铺满，两列等宽、居中
   const [boardW, setBoardW] = useState(0)
@@ -142,6 +185,16 @@ export default function Practice({ fixedMode }) {
 
   const autoSpeak = text => {
     if (settings.autoSpeak) speak(text, settings.rate)
+  }
+
+  /** 答错反馈：震动一下（H5 支持就震，不支持就静默跳过） */
+  const buzz = () => {
+    try {
+      if (Taro.vibrateShort) Taro.vibrateShort({ type: 'heavy' })
+    } catch (e) {}
+    try {
+      if (navigator.vibrate) navigator.vibrate(120)
+    } catch (e) {}
   }
 
   const flash = ok => {
@@ -302,6 +355,7 @@ export default function Practice({ fixedMode }) {
       }
     } else {
       playWrong()
+      buzz()
       addScore(false)
       setWrongFlash(w.en)
       addWrong({ en: w.en, cn: w.cn })
@@ -383,6 +437,7 @@ export default function Practice({ fixedMode }) {
       setCrossWrongPick(opt.key)
       flash(false)
       playWrong()
+      buzz()
       addScore(false)
       addWrong({ en: crossQ.word.en, cn: crossQ.word.cn })
       setCrossWrong(n => n + 1)
@@ -420,6 +475,7 @@ export default function Practice({ fixedMode }) {
   )
   const [dIdx, setDIdx] = useState(0)
   const [dStage, setDStage] = useState('write')
+  const [dErr, setDErr] = useState(false)
   const [dInput, setDInput] = useState('')
   const [dChecked, setDChecked] = useState(null)
   const [dListening, setDListening] = useState(false)
@@ -444,7 +500,14 @@ export default function Practice({ fixedMode }) {
     setDChecked(ok)
     addScore(ok)
     flash(ok)
-    if (!ok) addWrong({ en: dictWord.en, zh: dictWord.cn, chapterId })
+    resultsRef.current[dictWord.en] = ok ? 'ok' : 'bad'
+    persistState(dIdx)
+    if (!ok) {
+      setDErr(true)
+      buzz()
+      setTimeout(() => setDErr(false), 800)
+      addWrong({ en: dictWord.en, zh: dictWord.cn, chapterId })
+    }
   }
 
   const dictSubmit = () => dictCheck(dInput)
@@ -627,18 +690,18 @@ export default function Practice({ fixedMode }) {
   }
 
   const dictNext = () => {
-    if (dStage === 'write') {
-      setDStage('read')
-      return
-    }
     if (dIdx + 1 >= dictWords.length) {
       finish()
       return
     }
-    setDIdx(i => i + 1)
+    const next = dIdx + 1
+    setDIdx(next)
     setDStage('write')
     setDInput('')
     setDChecked(null)
+    setDErr(false)
+    setDVoiceMsg('')
+    persistState(next)
   }
 
   useEffect(() => {
@@ -681,6 +744,7 @@ export default function Practice({ fixedMode }) {
       setFillWrongPick(opt.key)
       flash(false)
       playWrong()
+      buzz()
       addScore(false)
       addWrong({ text: fillData.word.sentence })
     }
@@ -698,7 +762,14 @@ export default function Practice({ fixedMode }) {
   /** ---------- 结算 ---------- */
   const finish = () => {
     setShowResult(true)
-    saveChapterProgress(chapterId, { maxScore: scoreRef.current })
+    try {
+      savePracticeState(chapterId, mode, { idx: 0, score: scoreRef.current, combo: 0, results: {}, finished: true })
+    } catch (e) {}
+    saveChapterProgress(chapterId, {
+      maxScore: scoreRef.current,
+      doneDays: [2],
+      modes: { [mode]: true }
+    })
 
     // ---- 游戏化奖励 ----
     const stars = Math.round(scoreRef.current / 10)
@@ -884,7 +955,7 @@ export default function Practice({ fixedMode }) {
       {mode === 'dictation' && (
         <View className='panel'>
           <View className='dict-card'>
-            <Text className='dict-step'>{dStage === 'write' ? '听写 · 看中文写英文' : '跟读 · 看英文读出来'}</Text>
+            <Text className='dict-step'>听写 · 看中文写英文</Text>
 
             {dStage === 'write' ? (
               <>
@@ -903,44 +974,31 @@ export default function Practice({ fixedMode }) {
                   </View>
                 </View>
                 {dVoiceMsg ? <Text className='voice-msg'>{dVoiceMsg}</Text> : null}
-                <Input
-                  className='dict-input'
-                  value={dInput}
-                  placeholder='请输入'
-                  confirmType='done'
-                  onInput={e => setDInput(e.detail.value)}
-                  onConfirm={dictSubmit}
-                />
+                <View className={dErr ? 'dict-input-wrap shake' : 'dict-input-wrap'}>
+                  <Input
+                    className='dict-input'
+                    value={dInput}
+                    placeholder='请输入'
+                    confirmType='done'
+                    onInput={e => {
+                    setDInput(e.detail.value)
+                    if (dChecked === false) setDChecked(null)
+                  }}
+                    onConfirm={dictSubmit}
+                  />
+                  {dChecked === false && <Text className='dict-err'>❗</Text>}
+                </View>
                 {dChecked === true && <Text className='dict-ok'>✓ 写对了</Text>}
                 {dChecked === false && <Text className='dict-bad'>正确答案：{dictWord.en}</Text>}
 
-                {/* 答对：检查按钮变成「继续」；答错：变成「下一个」 */}
-                <View
-                  className='primary-btn'
-                  onClick={dChecked === true ? dictNext : dChecked === false ? dictNext : dictSubmit}
-                >
-                  <Text className='primary-btn-t'>
-                    {dChecked === true ? '继续' : dChecked === false ? '下一个' : '检查'}
-                  </Text>
+                {/* 答错保持「检查」，可以继续改；答对才变「下一个」 */}
+                <View className='primary-btn' onClick={dChecked === true ? dictNext : dictSubmit}>
+                  <Text className='primary-btn-t'>{dChecked === true ? '下一个' : '检查'}</Text>
                 </View>
               </>
-            ) : (
-              <>
-                <Text className='dict-en'>{dictWord.en}</Text>
-                <View className='dict-tools'>
-                  <View className='ghost-btn' onClick={() => speak(dictWord.en, settings.rate)}>
-                    <Text className='ghost-btn-t'>🔊 播放</Text>
-                  </View>
-                </View>
-                <Text className='dict-hint'>大声读一遍，读完点下面的按钮</Text>
-              </>
-            )}
+            ) : null}
 
-            {dStage === 'read' && (
-              <View className='primary-btn' onClick={dictNext}>
-                <Text className='primary-btn-t'>我读完了</Text>
-              </View>
-            )}
+
           </View>
         </View>
       )}
@@ -1162,14 +1220,6 @@ export default function Practice({ fixedMode }) {
             activeColor='#6366f1'
             onChanging={e => setSettings({ ...settings, rate: e.detail.value })}
             onChange={e => updateSettings({ rate: e.detail.value })}
-          />
-        </View>
-        <View className='set-row'>
-          <Text className='set-label'>答对后自动下一题</Text>
-          <Switch
-            color='#6366f1'
-            checked={settings.autoNext}
-            onChange={e => updateSettings({ autoNext: e.detail.value })}
           />
         </View>
       </View>

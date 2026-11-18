@@ -2,6 +2,7 @@ export default {
   pages: [
     'pages/login/index',
     'pages/index/index',
+    'pages/words/words',
     'pages/exercise/index',
     'pages/dictation/dictation',
     'pages/match/match',

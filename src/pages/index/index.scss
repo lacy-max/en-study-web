@@ -455,7 +455,7 @@
   box-sizing: border-box;
   background: #fff;
   border-radius: 32px;
-  padding: 26px 14px 22px;
+  padding: 26px 14px 24px;
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
@@ -579,4 +579,31 @@
   top: 14px;
   font-size: 22px;
   color: #b08968;
+}
+
+/* 章节学习进度条（4 个练习环节，跟随内容排版，不压住标题） */
+.kcard-prog {
+  width: 100%;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 8px;
+  background: #e9ecf6;
+  overflow: hidden;
+}
+
+.kcard-prog-in {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #c8a887, #b08968);
+}
+
+.kcard-prog-t {
+  align-self: center;
+  margin-top: 6px;
+  font-size: 18px;
+  color: #9aa2bd;
+}
+
+.kcard-done .kcard-prog-t {
+  color: #9c7a5c;
 }

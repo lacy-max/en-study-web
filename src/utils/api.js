@@ -148,3 +148,29 @@ export function pushSettings(settings) {
     data: settings
   }).then(() => true).catch(() => false)
 }
+
+/** 当前练习状态（刷新、换手机都能续上） */
+export function getPracticeStates(chapterId) {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/state?chapterId=${encodeURIComponent(chapterId || '')}`,
+    method: 'GET',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => normalize(res.data))
+    .catch(() => null)
+}
+
+export function savePracticeState(chapterId, mode, data) {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/state`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: { chapterId, mode, data }
+  })
+    .then(() => true)
+    .catch(() => false)
+}
