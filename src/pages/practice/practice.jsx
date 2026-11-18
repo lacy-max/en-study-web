@@ -206,6 +206,7 @@ export default function Practice({ fixedMode }) {
   }
 
   function clearCanvas() {
+    if (true) return
     try {
       const ctx = ctxOf()
       ctx.clearRect(0, 0, canvasPxW, canvasPxH)
@@ -216,6 +217,8 @@ export default function Practice({ fixedMode }) {
   const RAINBOW = ['#f472b6', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa']
 
   function drawMatchedLine(enIdx, cnIdx) {
+    // 已停用：不再画彩虹连线，只靠卡片高亮表示已配对
+    if (true) return
     try {
       const k = ratio
       const x1 = CARD_W * k
@@ -664,18 +667,7 @@ export default function Practice({ fixedMode }) {
       </View>
 
       {/* 模式标题（拆成独立页面后不再切换） */}
-      {fixedMode ? (
-        <View className='mode-chip'>
-          <Text className='mode-chip-t'>
-            {{
-              match: '单词连线',
-              cross: '交叉练习',
-              fill: '句子填空',
-              dictation: '读与写'
-            }[mode] || '练习'}
-          </Text>
-        </View>
-      ) : (
+      {!fixedMode && (
         <View className='tabs'>
           {[
             { k: 'match', t: '单词连线' },
@@ -768,7 +760,6 @@ export default function Practice({ fixedMode }) {
                 height: `${canvasPxH}px`
               }}
             >
-              <Canvas className='line-canvas' canvasId='lineCanvas' />
               {burst && (
                 <View
                   key={burst.k}
