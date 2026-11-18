@@ -2,7 +2,11 @@ export default {
   pages: [
     'pages/login/index',
     'pages/index/index',
-    'pages/practice/practice',
+    'pages/exercise/index',
+    'pages/dictation/dictation',
+    'pages/match/match',
+    'pages/fill/fill',
+    'pages/cross/cross',
     'pages/collection/collection'
   ],
   window: {

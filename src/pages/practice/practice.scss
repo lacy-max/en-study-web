@@ -1100,3 +1100,101 @@
   display: flex;
   justify-content: center;
 }
+
+/* ===== 独立练习页：模式标签 ===== */
+.mode-chip {
+  align-self: flex-start;
+  background: #ede9ff;
+  border-radius: 999px;
+  padding: 8px 18px;
+  margin: 6px 0 14px;
+}
+
+.mode-chip-t {
+  font-size: 24px;
+  color: #6d5bd0;
+  font-weight: 600;
+}
+
+/* ===== 读与写（听写 + 跟读） ===== */
+.dict-card {
+  background: #fff;
+  border-radius: 30px;
+  padding: 34px 28px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.1);
+}
+
+.dict-step {
+  font-size: 24px;
+  color: #9aa2c1;
+  margin-bottom: 18px;
+}
+
+.dict-cn {
+  font-size: 52px;
+  font-weight: 700;
+  color: #2f3552;
+  margin-bottom: 18px;
+}
+
+.dict-en {
+  font-size: 52px;
+  font-weight: 700;
+  color: #6d7bf7;
+  margin-bottom: 18px;
+}
+
+.dict-tools {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dict-input {
+  width: 100%;
+  height: 88px;
+  background: #f5f6fc;
+  border: 2px solid #e6e9f5;
+  border-radius: 20px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  font-size: 32px;
+  color: #2f3552;
+  margin-bottom: 14px;
+}
+
+.dict-ok {
+  font-size: 26px;
+  color: #16a34a;
+  margin-bottom: 10px;
+}
+
+.dict-bad {
+  font-size: 26px;
+  color: #ef6461;
+  margin-bottom: 10px;
+}
+
+.dict-hint {
+  font-size: 24px;
+  color: #9aa2c1;
+}
+
+/* 修正：模式标签不铺满、卡片内主按钮通栏 */
+.mode-chip {
+  display: inline-flex;
+  width: auto;
+}
+
+.dict-card .primary-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.dict-card .primary-btn-t {
+  width: 100%;
+  text-align: center;
+}

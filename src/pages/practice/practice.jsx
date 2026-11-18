@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { View, Text, Image, Canvas, Slider, Switch } from '@tarojs/components'
+import { View, Text, Image, Canvas, Slider, Switch, Input } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters, findChapter } from '../../utils/api'
@@ -85,7 +85,7 @@ function buildOptions(correct, pool) {
   return shuffle(opts)
 }
 
-export default function Practice() {
+export default function Practice({ fixedMode }) {
   const router = useRouter()
   const chapterId = router.params.chapterId || 'unit01'
   const day = Number(router.params.day || 2)
@@ -102,7 +102,7 @@ export default function Practice() {
   const chapter = useMemo(() => findChapter(chaptersList, chapterId), [chapterId, chaptersList])
 
   const [settings, setSettings] = useState(getSettings())
-  const [mode, setMode] = useState('match')
+  const [mode, setMode] = useState(fixedMode || 'match')
   const [score, setScore] = useState(0)
   const scoreRef = useRef(0)
   const [combo, setCombo] = useState(0)
@@ -409,6 +409,41 @@ export default function Practice() {
   const [fillAnswered, setFillAnswered] = useState('')
   const [fillWrongPick, setFillWrongPick] = useState('')
 
+  /** ---------- 模式四：读与写（先听写，再跟读） ---------- */
+  const dictWords = useMemo(
+    () => (chapter.words || []).filter(w => w && w.en),
+    [chapter]
+  )
+  const [dIdx, setDIdx] = useState(0)
+  const [dStage, setDStage] = useState('write')
+  const [dInput, setDInput] = useState('')
+  const [dChecked, setDChecked] = useState(null)
+  const dictWord = dictWords[dIdx] || { en: '', cn: '' }
+
+  const dictSubmit = () => {
+    if (!dictWord.en || dChecked === true) return
+    const ok = dInput.trim().toLowerCase() === dictWord.en.trim().toLowerCase()
+    setDChecked(ok)
+    addScore(ok)
+    flash(ok)
+    if (!ok) addWrong({ en: dictWord.en, zh: dictWord.cn, chapterId })
+  }
+
+  const dictNext = () => {
+    if (dStage === 'write') {
+      setDStage('read')
+      return
+    }
+    if (dIdx + 1 >= dictWords.length) {
+      finish()
+      return
+    }
+    setDIdx(i => i + 1)
+    setDStage('write')
+    setDInput('')
+    setDChecked(null)
+  }
+
   useEffect(() => {
     if (!fillPool.length) return
     const w = fillPool[Math.min(fillIdx, fillPool.length - 1)]
@@ -601,6 +636,8 @@ export default function Practice() {
       ? `${matchPage + 1}/${totalPages}`
       : mode === 'cross'
       ? `${Math.min(crossIdx + 1, crossQs.length)}/${crossQs.length}`
+      : mode === 'dictation'
+      ? `${Math.min(dIdx + 1, dictWords.length)}/${dictWords.length}`
       : `${Math.min(fillIdx + 1, fillPool.length)}/${fillPool.length}`
 
   return (
@@ -626,22 +663,92 @@ export default function Practice() {
         </View>
       </View>
 
-      {/* 模式切换 */}
-      <View className='tabs'>
-        {[
-          { k: 'match', t: '单词连线' },
-          { k: 'cross', t: '交叉练习' },
-          { k: 'fill', t: '句子填空' }
-        ].map(tab => (
-          <View
-            key={tab.k}
-            className={`tab ${mode === tab.k ? 'tab-on' : ''}`}
-            onClick={() => setMode(tab.k)}
-          >
-            <Text className={`tab-t ${mode === tab.k ? 'tab-t-on' : ''}`}>{tab.t}</Text>
+      {/* 模式标题（拆成独立页面后不再切换） */}
+      {fixedMode ? (
+        <View className='mode-chip'>
+          <Text className='mode-chip-t'>
+            {{
+              match: '单词连线',
+              cross: '交叉练习',
+              fill: '句子填空',
+              dictation: '读与写'
+            }[mode] || '练习'}
+          </Text>
+        </View>
+      ) : (
+        <View className='tabs'>
+          {[
+            { k: 'match', t: '单词连线' },
+            { k: 'cross', t: '交叉练习' },
+            { k: 'fill', t: '句子填空' },
+            { k: 'dictation', t: '读与写' }
+          ].map(tab => (
+            <View
+              key={tab.k}
+              className={`tab ${mode === tab.k ? 'tab-on' : ''}`}
+              onClick={() => setMode(tab.k)}
+            >
+              <Text className={`tab-t ${mode === tab.k ? 'tab-t-on' : ''}`}>{tab.t}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* ===== 读与写（听写 + 跟读） ===== */}
+      {mode === 'dictation' && (
+        <View className='panel'>
+          <View className='dict-card'>
+            <Text className='dict-step'>{dStage === 'write' ? '听写 · 看中文写英文' : '跟读 · 看英文读出来'}</Text>
+
+            {dStage === 'write' ? (
+              <>
+                <Text className='dict-cn'>{dictWord.cn || '—'}</Text>
+                <View className='dict-tools'>
+                  <View className='ghost-btn' onClick={() => speak(dictWord.en, settings.rate)}>
+                    <Text className='ghost-btn-t'>🔊 听发音</Text>
+                  </View>
+                </View>
+                <Input
+                  className='dict-input'
+                  value={dInput}
+                  placeholder='在这里写英文'
+                  confirmType='done'
+                  onInput={e => setDInput(e.detail.value)}
+                  onConfirm={dictSubmit}
+                />
+                {dChecked === true && <Text className='dict-ok'>✓ 写对了</Text>}
+                {dChecked === false && <Text className='dict-bad'>正确答案：{dictWord.en}</Text>}
+                {dChecked === null && (
+                  <View className='primary-btn' onClick={dictSubmit}>
+                    <Text className='primary-btn-t'>检查</Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                <Text className='dict-en'>{dictWord.en}</Text>
+                <View className='dict-tools'>
+                  <View className='ghost-btn' onClick={() => speak(dictWord.en, settings.rate)}>
+                    <Text className='ghost-btn-t'>🔊 播放</Text>
+                  </View>
+                </View>
+                <Text className='dict-hint'>大声读一遍，读完点下面的按钮</Text>
+              </>
+            )}
+
+            {(dChecked !== null || dStage === 'read') &&
+              (dStage === 'read' ? (
+                <View className='primary-btn' onClick={dictNext}>
+                  <Text className='primary-btn-t'>我读完了</Text>
+                </View>
+              ) : (
+                <View className='ghost-btn' onClick={dictNext}>
+                  <Text className='ghost-btn-t'>下一个</Text>
+                </View>
+              ))}
           </View>
-        ))}
-      </View>
+        </View>
+      )}
 
       {/* ===== 连线 ===== */}
       {mode === 'match' && (

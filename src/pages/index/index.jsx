@@ -82,7 +82,7 @@ export default function Index() {
   const currentIdx = chapters.findIndex(c => !studied(c.id))
 
   const open = c => {
-    Taro.navigateTo({ url: `/pages/practice/practice?chapterId=${c.id}&day=1` })
+    Taro.navigateTo({ url: `/pages/exercise/index?chapterId=${c.id}` })
   }
 
   const openLocked = () => {

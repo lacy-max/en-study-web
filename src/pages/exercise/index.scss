@@ -1,0 +1,107 @@
+.ex-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f2f5ff 0%, #eef1ff 45%, #fdf3f8 100%);
+  padding: 26px 24px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.ex-head {
+  padding: 0 6px 20px;
+}
+
+.ex-title {
+  font-size: 38px;
+  font-weight: 700;
+  color: #2f3552;
+  display: block;
+}
+
+.ex-sub {
+  font-size: 24px;
+  color: #9aa2c1;
+  margin-top: 8px;
+  display: block;
+}
+
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ex-item {
+  background: #fff;
+  border-radius: 26px;
+  padding: 24px 22px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 10px 26px rgba(99, 102, 241, 0.1);
+}
+
+.ex-icon {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: #f2f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 18px;
+}
+
+.ex-icon-t {
+  font-size: 40px;
+}
+
+.ex-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ex-name {
+  font-size: 30px;
+  font-weight: 600;
+  color: #2f3552;
+}
+
+.ex-desc {
+  font-size: 22px;
+  color: #9aa2c1;
+  margin-top: 6px;
+}
+
+.ex-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ex-count {
+  font-size: 22px;
+  color: #8d93ad;
+}
+
+.ex-arrow {
+  font-size: 34px;
+  color: #c3c8dc;
+}
+
+.ex-foot {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.ex-back {
+  padding: 14px 30px;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.ex-back-t {
+  font-size: 24px;
+  color: #8d93ad;
+}
