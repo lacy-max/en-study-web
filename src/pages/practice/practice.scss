@@ -1160,11 +1160,10 @@
   background: #f5f6fc;
   border: 2px solid #e6e9f5;
   border-radius: 24px;
-  padding: 0 28px;
+  padding: 0 26px;
   box-sizing: border-box;
-  font-size: 44px;
-  font-weight: 600;
-  letter-spacing: 1px;
+  font-size: 28px;
+  font-weight: 500;
   color: #2f3552;
   margin-bottom: 18px;
 }
@@ -1172,14 +1171,14 @@
 .dict-input input,
 .dict-input .taro-input {
   height: 128px;
-  font-size: 44px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 500;
   color: #2f3552;
 }
 
 .dict-input::placeholder {
-  font-size: 34px;
-  color: #9aa2bd;
+  font-size: 26px;
+  color: #a3aabd;
 }
 
 .dict-ok {
