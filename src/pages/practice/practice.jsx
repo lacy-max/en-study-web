@@ -3,6 +3,7 @@ import { View, Text, Image, Canvas, Slider, Switch, Input } from '@tarojs/compon
 import Taro, { useRouter } from '@tarojs/taro'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters, findChapter } from '../../utils/api'
+import { API_BASE } from '../../utils/config'
 import { speak, warmTTS } from '../../utils/tts'
 import { playWrong } from '../../utils/sfx'
 import { picOf } from '../../data/pics'
@@ -423,6 +424,7 @@ export default function Practice({ fixedMode }) {
   const [dChecked, setDChecked] = useState(null)
   const [dListening, setDListening] = useState(false)
   const recRef = useRef(null)
+  const recorderRef = useRef(null)
   const dictWord = dictWords[dIdx] || { en: '', cn: '' }
 
   // 判题：忽略大小写、首尾空格以及标点
@@ -458,7 +460,74 @@ export default function Practice({ fixedMode }) {
     try {
       recRef.current && recRef.current.stop()
     } catch (e) {}
+    try {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop()
+      }
+    } catch (e) {}
     setDListening(false)
+  }
+
+  /** 浏览器没有语音识别接口时（例如 iPhone Safari）走「录音上传 + 服务端识别」 */
+  const hasRecorder = () => {
+    try {
+      return (
+        typeof navigator !== 'undefined' &&
+        navigator.mediaDevices &&
+        typeof navigator.mediaDevices.getUserMedia === 'function' &&
+        typeof MediaRecorder !== 'undefined'
+      )
+    } catch (e) {
+      return false
+    }
+  }
+
+  const uploadVoice = async blob => {
+    Taro.showLoading({ title: '识别中…', mask: true })
+    try {
+      const res = await fetch(`${API_BASE}/api/asr`, {
+        method: 'POST',
+        headers: { 'Content-Type': blob.type || 'audio/webm' },
+        body: blob
+      })
+      const data = await res.json()
+      Taro.hideLoading()
+      const text = (data && data.text ? data.text : '').trim()
+      if (!text) {
+        Taro.showToast({ title: '没听清，再说一次吧', icon: 'none' })
+        return
+      }
+      setDInput(text)
+      dictCheck(text)
+    } catch (e) {
+      Taro.hideLoading()
+      Taro.showToast({ title: '识别服务没连上', icon: 'none' })
+    }
+  }
+
+  const startRecord = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      const chunks = []
+      rec.ondataavailable = e => {
+        if (e.data && e.data.size > 0) chunks.push(e.data)
+      }
+      rec.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        setDListening(false)
+        if (!chunks.length) return
+        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
+        uploadVoice(blob)
+      }
+      recorderRef.current = rec
+      rec.start()
+      setDListening(true)
+    } catch (e) {
+      setDListening(false)
+      Taro.showToast({ title: '麦克风没开权限，允许后再试', icon: 'none' })
+    }
   }
 
   const toggleVoice = () => {
@@ -468,6 +537,11 @@ export default function Practice({ fixedMode }) {
     }
     const rec = getRecognition()
     if (!rec) {
+      // iPhone Safari 没有语音识别接口 → 录音上传，交给服务端识别
+      if (hasRecorder()) {
+        startRecord()
+        return
+      }
       Taro.showToast({ title: '当前浏览器不支持语音输入', icon: 'none' })
       return
     }
@@ -780,7 +854,7 @@ export default function Practice({ fixedMode }) {
                     onClick={toggleVoice}
                   >
                     <Text className='ghost-btn-t'>
-                      {dListening ? '🎙️ 正在听，点我结束' : '🎤 语音输入'}
+                      {dListening ? '🎙️ 正在录，点我结束' : '🎤 语音输入'}
                     </Text>
                   </View>
                 </View>
