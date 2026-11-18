@@ -49,3 +49,102 @@ export function findChapter(list, id) {
   const arr = list && list.length ? list : fallbackChapters
   return arr.find(c => c.id === id) || arr[0] || null
 }
+
+/** ---------- 账号与云端进度 ---------- */
+const TOKEN_KEY = 'en_token_v1'
+
+export function getSession() {
+  try {
+    return Taro.getStorageSync(TOKEN_KEY) || null
+  } catch (e) {
+    return null
+  }
+}
+
+export function setSession(session) {
+  try {
+    if (session) Taro.setStorageSync(TOKEN_KEY, session)
+    else Taro.removeStorageSync(TOKEN_KEY)
+  } catch (e) {}
+}
+
+export async function login(name, code) {
+  const res = await Taro.request({
+    url: `${API_BASE}/api/login`,
+    method: 'POST',
+    timeout: 6000,
+    header: { 'Content-Type': 'application/json' },
+    data: { name, code }
+  })
+  if (res.statusCode !== 200) {
+    throw new Error((res.data && res.data.detail) || '登录失败')
+  }
+  const session = res.data
+  setSession(session)
+  return session
+}
+
+function authHeader() {
+  const s = getSession()
+  return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+}
+
+/** 拉取该账号在服务端的全部进度（进度 / 错题 / 设置） */
+export async function fetchProgress() {
+  if (!getSession()) return null
+  try {
+    const res = await Taro.request({
+      url: `${API_BASE}/api/progress`,
+      timeout: 5000,
+      header: authHeader()
+    })
+    if (res.statusCode === 200) return res.data
+    if (res.statusCode === 401) setSession(null)
+  } catch (e) {
+    console.warn('[api] 进度拉取失败', e)
+  }
+  return null
+}
+
+export function pushChapterProgress(chapterId, patch) {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/progress`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: { chapterId, patch }
+  }).then(() => true).catch(() => false)
+}
+
+export function pushWrong(item) {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/wrong`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: item
+  }).then(() => true).catch(() => false)
+}
+
+export function pushClearWrong() {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/wrong`,
+    method: 'DELETE',
+    timeout: 5000,
+    header: authHeader()
+  }).then(() => true).catch(() => false)
+}
+
+export function pushSettings(settings) {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/settings`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: settings
+  }).then(() => true).catch(() => false)
+}

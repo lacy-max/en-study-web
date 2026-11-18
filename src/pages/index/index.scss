@@ -531,3 +531,52 @@
   color: #6366f1;
   font-weight: 700;
 }
+
+/* 未解锁的关卡 */
+.kcard-locked {
+  border: 2px dashed #e2e8f0;
+}
+
+/* 未解锁：只靠蒙版压暗，内容本身不再二次变淡 */
+.kcard-locked .kcard-animal,
+.kcard-locked .kcard-emoji {
+  filter: grayscale(1);
+  opacity: 0.9;
+}
+
+.kcard-locked .kcard-title {
+  color: #b6c1d1;
+}
+
+.kcard-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 32px;
+  background: rgba(250, 251, 253, 0.22);
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
+}
+
+/* 学过的关卡：浅咖色卡片 + 星星 */
+.kcard-done {
+  background: #fbf5ee;
+  border: 2px solid #f0e2d2;
+  box-shadow: 0 8px 20px rgba(203, 176, 148, 0.16);
+}
+
+.kcard-done .kcard-no,
+.kcard-done .kcard-title {
+  color: #9c7a5c;
+}
+
+/* 已完成关卡的勾选标 */
+.kcard-check {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  font-size: 22px;
+  color: #b08968;
+}

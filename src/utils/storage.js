@@ -1,4 +1,5 @@
 import Taro from '@tarojs/taro'
+import { pushChapterProgress, pushWrong, pushClearWrong, pushSettings } from './api'
 
 const PROGRESS_KEY = 'en_progress_v1'
 const SETTINGS_KEY = 'en_settings_v1'
@@ -17,6 +18,7 @@ export function saveSettings(s) {
   try {
     Taro.setStorageSync(SETTINGS_KEY, s)
   } catch (e) {}
+  pushSettings(s)
 }
 
 /** ---------- 每章节进度 ---------- */
@@ -39,6 +41,8 @@ export function saveChapterProgress(chapterId, patch) {
   try {
     Taro.setStorageSync(PROGRESS_KEY, all)
   } catch (e) {}
+  // 有登录就同步到服务器（失败不影响本地体验）
+  pushChapterProgress(chapterId, patch)
 }
 
 /** ---------- 错题本 ---------- */
@@ -58,10 +62,27 @@ export function addWrong(item) {
   try {
     Taro.setStorageSync(WRONG_KEY, list.slice(0, 100))
   } catch (e) {}
+  pushWrong({ en: key, zh: item.zh || '', chapterId: item.chapterId || '' })
 }
 
 export function clearWrongBook() {
   try {
     Taro.setStorageSync(WRONG_KEY, [])
   } catch (e) {}
+  pushClearWrong()
+}
+
+/** ---------- 用服务端数据覆盖本地缓存（登录后调用） ---------- */
+export function applyRemote(remote) {
+  if (!remote) return false
+  try {
+    if (remote.progress) Taro.setStorageSync(PROGRESS_KEY, remote.progress)
+    if (remote.wrong) Taro.setStorageSync(WRONG_KEY, remote.wrong)
+    if (remote.settings && Object.keys(remote.settings).length) {
+      Taro.setStorageSync(SETTINGS_KEY, remote.settings)
+    }
+  } catch (e) {
+    return false
+  }
+  return true
 }
