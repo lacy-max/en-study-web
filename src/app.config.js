@@ -1,0 +1,14 @@
+export default {
+  pages: [
+    'pages/index/index',
+    'pages/practice/practice',
+    'pages/collection/collection'
+  ],
+  window: {
+    backgroundTextStyle: 'light',
+    navigationBarBackgroundColor: '#6366f1',
+    navigationBarTitleText: '英语闯关',
+    navigationBarTextStyle: 'white',
+    backgroundColor: '#f0f4ff'
+  }
+}
