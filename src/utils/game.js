@@ -13,7 +13,8 @@ const EMPTY = {
   chestUsed: 0, // 已投入宝箱的星星
   streak: 0, // 连续学习天数
   lastDay: '', // 最后活跃日期 YYYY-MM-DD
-  bestCombo: 0 // 历史最高连击
+  bestCombo: 0, // 历史最高连击
+  days: [] // 打卡日期列表 YYYY-MM-DD
 }
 
 function todayStr() {
@@ -60,7 +61,8 @@ export function touchToday() {
   const today = todayStr()
   if (g.lastDay === today) return g
   const streak = g.lastDay === yesterdayStr() ? g.streak + 1 : 1
-  return saveGame({ lastDay: today, streak })
+  const days = (g.days || []).indexOf(today) >= 0 ? g.days : (g.days || []).concat([today]).slice(-400)
+  return saveGame({ lastDay: today, streak, days })
 }
 
 /** 解锁卡牌，返回是否新解锁 */

@@ -89,6 +89,19 @@ function authHeader() {
   return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
 }
 
+/** 提交意见反馈（失败抛出，页面据此提示） */
+export async function sendFeedback(text) {
+  const res = await Taro.request({
+    url: `${API_BASE}/api/feedback`,
+    method: 'POST',
+    timeout: 8000,
+    header: authHeader(),
+    data: { text: String(text || '').slice(0, 200), at: Date.now() }
+  })
+  if (res.statusCode !== 200) throw new Error('submit failed')
+  return res.data
+}
+
 /** 拉取该账号在服务端的全部进度（进度 / 错题 / 设置） */
 export async function fetchProgress() {
   if (!getSession()) return null

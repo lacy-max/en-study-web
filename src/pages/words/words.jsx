@@ -7,6 +7,7 @@ import { getSettings, saveChapterProgress } from '../../utils/storage'
 import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
 import { backOrHome, goHome } from '../../utils/nav'
+import { touchToday } from '../../utils/game'
 import './words.scss'
 
 /** 第一关：学单词 —— 把这一课的单词先过一遍，看完才能去第二关闯关 */
@@ -41,6 +42,11 @@ export default function Words() {
   }, [idx, cur && cur.en])
 
   useEffect(() => () => stopSpeak(), [])
+
+  // 开始学单词就算今天打卡
+  useEffect(() => {
+    touchToday()
+  }, [])
 
   const go = step => {
     const next = idx + step

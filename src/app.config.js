@@ -8,7 +8,9 @@ export default {
     'pages/match/match',
     'pages/fill/fill',
     'pages/cross/cross',
-    'pages/collection/collection'
+    'pages/collection/collection',
+    'pages/checkin/index',
+    'pages/me/index'
   ],
   window: {
     backgroundTextStyle: 'light',

@@ -1,0 +1,168 @@
+.ck-page {
+  min-height: 100vh;
+  padding: 24px 24px 60px;
+  background: linear-gradient(180deg, #eef2ff 0%, #f7f8ff 55%, #f9fbff 100%);
+}
+
+.ck-head {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.ck-back {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  margin-bottom: 10px;
+}
+
+.ck-back-t {
+  font-size: 15px;
+  color: #6366f1;
+}
+
+.ck-title {
+  font-size: 34px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ck-hero {
+  background: #fff;
+  border-radius: 26px;
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+}
+
+.ck-hero-done {
+  background: linear-gradient(180deg, #fff7e6 0%, #fffdf7 100%);
+}
+
+.ck-hero-emoji {
+  font-size: 72px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.ck-hero-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.ck-hero-sub {
+  font-size: 22px;
+  color: #8b93a3;
+}
+
+.ck-stats {
+  display: flex;
+  justify-content: space-between;
+  margin: 24px 0;
+}
+
+.ck-stat {
+  flex: 1;
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.08);
+}
+
+.ck-stat:last-child {
+  margin-right: 0;
+}
+
+.ck-stat-num {
+  font-size: 38px;
+  font-weight: 700;
+  color: #6366f1;
+}
+
+.ck-stat-label {
+  font-size: 20px;
+  color: #9aa3b2;
+  margin-top: 6px;
+}
+
+.ck-cal {
+  background: #fff;
+  border-radius: 26px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
+}
+
+.ck-cal-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.ck-week {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.ck-week-t {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  color: #b0b7c3;
+}
+
+.ck-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.ck-cell {
+  width: 14.28%;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  margin-bottom: 6px;
+}
+
+.ck-cell-t {
+  font-size: 22px;
+  color: #9aa3b2;
+}
+
+.ck-cell-done {
+  background: #eef1ff;
+}
+
+.ck-cell-done .ck-cell-t {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.ck-cell-today {
+  background: #6366f1;
+}
+
+.ck-cell-today .ck-cell-t {
+  color: #fff;
+  font-weight: 700;
+}
+
+.ck-tip {
+  display: block;
+  margin-top: 24px;
+  font-size: 20px;
+  color: #a3aab8;
+  text-align: center;
+}
