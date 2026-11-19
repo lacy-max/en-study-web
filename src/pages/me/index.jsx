@@ -69,6 +69,10 @@ export default function Me() {
           <Text className='me-link-t'>💬 意见反馈</Text>
           <Text className='me-link-arrow'>›</Text>
         </View>
+        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/wordlist/index' })}>
+          <Text className='me-link-t'>📖 学过的单词</Text>
+          <Text className='me-link-arrow'>›</Text>
+        </View>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/checkin/index' })}>
           <Text className='me-link-t'>📅 我的打卡</Text>
           <Text className='me-link-arrow'>›</Text>

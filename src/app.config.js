@@ -11,7 +11,8 @@ export default {
     'pages/collection/collection',
     'pages/checkin/index',
     'pages/me/index',
-    'pages/feedback/index'
+    'pages/feedback/index',
+    'pages/wordlist/index'
   ],
   window: {
     backgroundTextStyle: 'light',
