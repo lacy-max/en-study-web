@@ -408,6 +408,20 @@ export default function Practice({ fixedMode }) {
     })
   }, [chapter])
 
+  /** 朗读整段后再执行回调：读不完就不切题（播放失败也有兜底超时） */
+  const speakThen = (text, done) => {
+    let fired = false
+    let timer = null
+    const once = () => {
+      if (fired) return
+      fired = true
+      if (timer) clearTimeout(timer)
+      done()
+    }
+    speak(text, settings.rate, once)
+    timer = setTimeout(once, 15000)
+  }
+
   const [crossIdx, setCrossIdx] = useState(0)
   const [crossWrong, setCrossWrong] = useState(0)
   const [crossAnswered, setCrossAnswered] = useState(null)
@@ -424,14 +438,16 @@ export default function Practice({ fixedMode }) {
     if (!crossQ) return
     if (crossAnswered === '__right') return
     setCrossAnswered(opt.key)
+    const answerRight = opt.key === crossQ.word.en
     speak(crossQ.audio, settings.rate)
 
-    if (opt.key === crossQ.word.en) {
+    if (answerRight) {
       setCrossAnswered('__right')
       flash(true)
       addScore(true)
       if (settings.autoNext) {
-        setTimeout(() => goCross(crossIdx + 1), 2000)
+        // 长句子读完再走，读完前不切题
+        speakThen(crossQ.audio, () => goCross(crossIdx + 1))
       }
     } else {
       setCrossWrongPick(opt.key)
@@ -740,7 +756,8 @@ export default function Practice({ fixedMode }) {
       flash(true)
       addScore(true)
       if (settings.autoNext) {
-        setTimeout(() => goFill(fillIdx + 1), 2000)
+        // 整句读完再切题，避免长句子被切断
+        speakThen(fillData.word.sentence, () => goFill(fillIdx + 1))
       }
     } else {
       setFillWrongPick(opt.key)
