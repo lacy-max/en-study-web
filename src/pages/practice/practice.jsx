@@ -4,7 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters, findChapter, getPracticeStates, savePracticeState } from '../../utils/api'
 import { API_BASE } from '../../utils/config'
-import { speak, warmTTS } from '../../utils/tts'
+import { speak, warmTTS, stopSpeak } from '../../utils/tts'
 import { playWrong } from '../../utils/sfx'
 import { picOf } from '../../data/pics'
 import {
@@ -446,6 +446,7 @@ export default function Practice({ fixedMode }) {
 
   const goCross = idx => {
     if (idx < 0) return
+    stopSpeak()
     if (idx >= crossQs.length) {
       finish()
       return
@@ -690,6 +691,7 @@ export default function Practice({ fixedMode }) {
   }
 
   const dictNext = () => {
+    stopSpeak()
     if (dIdx + 1 >= dictWords.length) {
       finish()
       return
@@ -752,6 +754,7 @@ export default function Practice({ fixedMode }) {
 
   const goFill = idx => {
     if (idx < 0) return
+    stopSpeak()
     if (idx >= fillPool.length) {
       finish()
       return
@@ -759,8 +762,11 @@ export default function Practice({ fixedMode }) {
     setFillIdx(idx)
   }
 
+  useEffect(() => () => stopSpeak(), [])
+
   /** ---------- 结算 ---------- */
   const finish = () => {
+    stopSpeak()
     setShowResult(true)
     try {
       savePracticeState(chapterId, mode, { idx: 0, score: scoreRef.current, combo: 0, results: {}, finished: true })

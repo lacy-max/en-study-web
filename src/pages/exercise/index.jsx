@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro, { useRouter } from '@tarojs/taro'
+import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { loadChapters, findChapter, fetchProgress } from '../../utils/api'
 import { getChapterProgress, applyRemote, saveChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
@@ -27,6 +27,19 @@ export default function Exercise() {
   const syncDone = () => {
     setModesDone((getChapterProgress(chapterId) || {}).modes || {})
   }
+
+  // 每次回到这个页面都重新读一遍进度：从练习页 navigateBack 回来时状态才会立刻更新
+  useDidShow(() => {
+    syncDone()
+    fetchProgress()
+      .then(remote => {
+        if (remote) {
+          applyRemote(remote)
+          syncDone()
+        }
+      })
+      .catch(() => {})
+  })
 
   // 进入这一关就记「来过」（首页据此给星星），并先从服务端同步进度
   useEffect(() => {
@@ -71,7 +84,7 @@ export default function Exercise() {
         icon: '🧩',
         title: '句子填空',
         desc: '整句挖空，选出正确的词',
-        count: `${(chapter.sentences || []).length} 句`
+        count: `${(chapter.words || []).filter(w => w && w.en && w.sentence).length} 句`
       },
       {
         key: 'cross',

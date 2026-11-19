@@ -181,3 +181,30 @@
   text-align: center;
   color: #8b93ad;
 }
+
+.wd-sentence-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.wd-sentence-play {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eef1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-right: 10px;
+}
+
+.wd-sentence-play-t {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.wd-sentence-en {
+  flex: 1;
+}

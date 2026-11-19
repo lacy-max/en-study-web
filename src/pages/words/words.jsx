@@ -4,7 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro'
 import { loadChapters, findChapter } from '../../utils/api'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { getSettings, saveChapterProgress } from '../../utils/storage'
-import { speak } from '../../utils/tts'
+import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
 import './words.scss'
 
@@ -38,6 +38,8 @@ export default function Words() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, cur && cur.en])
 
+  useEffect(() => () => stopSpeak(), [])
+
   const go = step => {
     const next = idx + step
     if (next < 0) return
@@ -50,8 +52,21 @@ export default function Words() {
 
   const finish = () => {
     saveChapterProgress(chapterId, { modes: { study: true }, doneDays: [1] })
-    // 学完单词直接进第二关的第一个练习，不绕回入口列表
-    Taro.redirectTo({ url: `/pages/dictation/dictation?chapterId=${chapterId}&day=2` })
+    stopSpeak()
+    // 学完先给个鼓励，不自动跳进下一关
+    Taro.showModal({
+      title: '太棒了！🎉',
+      content: `这一课的 ${words.length} 个单词你都看完了，真厉害！\n休息一下，准备好就去闯关吧。`,
+      confirmText: '去闯关',
+      cancelText: '回首页',
+      success: res => {
+        if (res.confirm) {
+          Taro.redirectTo({ url: `/pages/dictation/dictation?chapterId=${chapterId}&day=2` })
+        } else {
+          Taro.navigateBack()
+        }
+      }
+    })
   }
 
   if (!cur) {
@@ -96,7 +111,12 @@ export default function Words() {
 
         {cur.sentence ? (
           <View className='wd-sentence'>
-            <Text className='wd-sentence-en'>{cur.sentence}</Text>
+            <View className='wd-sentence-row'>
+              <View className='wd-sentence-play' onClick={() => speak(cur.sentence, settings.rate)}>
+                <Text className='wd-sentence-play-t'>🔊</Text>
+              </View>
+              <Text className='wd-sentence-en'>{cur.sentence}</Text>
+            </View>
             {cur.sentenceCn ? <Text className='wd-sentence-cn'>{cur.sentenceCn}</Text> : null}
           </View>
         ) : null}
@@ -108,7 +128,7 @@ export default function Words() {
         </View>
         {last ? (
           <View className='wd-btn wd-btn-main' onClick={finish}>
-            <Text className='wd-btn-t wd-btn-t-main'>学完了，去闯关</Text>
+            <Text className='wd-btn-t wd-btn-t-main'>学完了</Text>
           </View>
         ) : (
           <View className='wd-btn wd-btn-main' onClick={() => go(1)}>
