@@ -16,7 +16,9 @@ export default function TabBar({ active }) {
   }
 
   return (
-    <View className='tabbar'>
+    <React.Fragment>
+      <View className='tabbar-space' />
+      <View className='tabbar'>
       {ITEMS.map(item => (
         <View
           className={`tabbar-item ${item.key === active ? 'tabbar-item-on' : ''}`}
@@ -27,6 +29,7 @@ export default function TabBar({ active }) {
           <Text className='tabbar-label'>{item.label}</Text>
         </View>
       ))}
-    </View>
+      </View>
+    </React.Fragment>
   )
 }

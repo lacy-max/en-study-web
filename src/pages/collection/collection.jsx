@@ -5,13 +5,21 @@ import { chapters } from '../../data/chapters'
 import { getGame } from '../../utils/game'
 import { CARDS, DOLL_CARDS, BADGES, ACCESSORIES } from '../../data/cards'
 import { getChapterProgress } from '../../utils/storage'
+import { fetchCards } from '../../utils/api'
+import { unlockCard } from '../../utils/game'
 import './collection.scss'
+import TabBar from '../../components/tabbar'
 
 export default function Collection() {
   const [game, setGame] = useState(getGame())
 
   useDidShow(() => {
     setGame(getGame())
+    // 服务端保存的娃娃卡，换手机也能同步回来
+    fetchCards().then(list => {
+      (list || []).forEach(id => unlockCard(id))
+      setGame(getGame())
+    })
   })
 
   const cards = chapters.map(c => CARDS[c.id] || { id: c.id, emoji: '📘', title: c.title })
@@ -107,6 +115,7 @@ export default function Collection() {
           })}
         </View>
       </View>
-    </View>
+          <TabBar active='me' />
+</View>
   )
 }

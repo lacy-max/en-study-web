@@ -44,3 +44,8 @@
   color: #6366f1;
   font-weight: 600;
 }
+
+.tabbar-space {
+  height: 112px;
+  padding-bottom: env(safe-area-inset-bottom);
+}

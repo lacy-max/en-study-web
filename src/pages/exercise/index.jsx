@@ -6,6 +6,7 @@ import { getChapterProgress, applyRemote, saveChapterProgress } from '../../util
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { goHome } from '../../utils/nav'
 import './index.scss'
+import TabBar from '../../components/tabbar'
 
 export default function Exercise() {
   const router = useRouter()
@@ -172,6 +173,7 @@ export default function Exercise() {
           <Text className='ex-back-t'>返回首页</Text>
         </View>
       </View>
-    </View>
+          <TabBar active='home' />
+</View>
   )
 }

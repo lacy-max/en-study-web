@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 import { sendFeedback } from '../../utils/api'
 import { backOrHome } from '../../utils/nav'
 import './index.scss'
+import TabBar from '../../components/tabbar'
 
 export default function Feedback() {
   const [text, setText] = useState('')
@@ -53,6 +54,7 @@ export default function Feedback() {
       </View>
 
       <Text className='fb-tip'>我们会在 1–2 个工作日内看到你的反馈</Text>
-    </View>
+          <TabBar active='me' />
+</View>
   )
 }

@@ -22,7 +22,8 @@ import {
   updateBestCombo,
   getGame
 } from '../../utils/game'
-import { CARDS, dollForChapter } from '../../data/cards'
+import { CARDS, DOLL_CARDS } from '../../data/cards'
+import { awardDollCard } from '../../utils/api'
 import PetHi from '../../assets/mascot/hi.png'
 import PetGo from '../../assets/mascot/go.png'
 import PetYay from '../../assets/mascot/yay.png'
@@ -35,6 +36,7 @@ const PETS = [PetYay, PetBear, PetRabbit, PetDuck, PetHi, PetParty, PetGo]
 const PRAISE = ['真棒！', '读得好听～', '记住它啦！', '再跟读一遍～', '这个音很准！']
 import MascotHi from '../../assets/mascot/hi.png'
 import './practice.scss'
+import TabBar from '../../components/tabbar'
 
 const PAGE_SIZE = 5
 // 画布尺寸（rpx），与样式保持一致
@@ -811,14 +813,17 @@ export default function Practice({ fixedMode }) {
     const isNewCard = unlockCard(chapterId)
     setNewCard(isNewCard ? CARDS[chapterId] || null : null)
 
-    // 女孩专属：每完成一关奖励一张原创卡通娃娃卡
-    let doll = null
+    // 女孩专属：完成一关由服务端随机发一张娃娃卡（同一章只发一次）
+    setNewDoll(null)
     if ((getGame().gender || '') === 'girl') {
-      const idx = chaptersList.findIndex(c => c.id === chapterId)
-      const pick = dollForChapter(idx < 0 ? 0 : idx)
-      if (pick && unlockCard(pick.id)) doll = pick
+      awardDollCard(chapterId).then(resp => {
+        if (!resp || !resp.cardId) return
+        const card = DOLL_CARDS.filter(c => c.id === resp.cardId)[0]
+        if (!card) return
+        unlockCard(card.id)
+        if (resp.isNew) setNewDoll(card)
+      })
     }
-    setNewDoll(doll)
     if ((getGame().cards || []).length >= 3) addBadge('collector')
   }
   const restart = () => {
@@ -1299,6 +1304,8 @@ export default function Practice({ fixedMode }) {
           </View>
         </View>
       )}
-    </View>
+          <TabBar active='home' />
+      <TabBar active='home' />
+</View>
   )
 }

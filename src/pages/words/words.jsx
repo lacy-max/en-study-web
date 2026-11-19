@@ -9,6 +9,7 @@ import { picOf, picAsset } from '../../data/pics'
 import { backOrHome, goHome } from '../../utils/nav'
 import { touchToday } from '../../utils/game'
 import './words.scss'
+import TabBar from '../../components/tabbar'
 
 /** 第一关：学单词 —— 把这一课的单词先过一遍，看完才能去第二关闯关 */
 export default function Words() {
@@ -104,16 +105,15 @@ export default function Words() {
 
         <View className='wd-tools'>
           <View className='wd-play' onClick={() => speak(cur.en, settings.rate)}>
-            <Text className='wd-play-t'>🔊 听发音</Text>
+            <View className='wd-play-icon' />
+            <Text className='wd-play-t'>听发音</Text>
           </View>
         </View>
 
         {cur.sentence ? (
           <View className='wd-sentence'>
             <View className='wd-sentence-row'>
-              <View className='wd-sentence-play' onClick={() => speak(cur.sentence, settings.rate)}>
-                <Text className='wd-sentence-play-t'>🔊</Text>
-              </View>
+              <View className='wd-sentence-play' onClick={() => speak(cur.sentence, settings.rate)} />
               <Text className='wd-sentence-en'>{cur.sentence}</Text>
             </View>
             {cur.sentenceCn ? <Text className='wd-sentence-cn'>{cur.sentenceCn}</Text> : null}
@@ -163,6 +163,7 @@ export default function Words() {
           </View>
         </View>
       )}
-    </View>
+          <TabBar active='home' />
+</View>
   )
 }

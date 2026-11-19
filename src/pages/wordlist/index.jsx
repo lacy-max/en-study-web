@@ -8,6 +8,7 @@ import { speak, stopSpeak } from '../../utils/tts'
 import { backOrHome } from '../../utils/nav'
 import { Image } from '@tarojs/components'
 import './index.scss'
+import TabBar from '../../components/tabbar'
 
 // 释义收成词，不要长句/括号解释
 function shortCn(cn) {
@@ -83,6 +84,7 @@ export default function WordList() {
         ))}
         <View className='wl-bottom' />
       </ScrollView>
-    </View>
+          <TabBar active='me' />
+</View>
   )
 }

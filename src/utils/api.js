@@ -89,6 +89,33 @@ function authHeader() {
   return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
 }
 
+/** 我的娃娃卡（服务端） */
+export function fetchCards() {
+  if (!getSession()) return Promise.resolve([])
+  return Taro.request({
+    url: `${API_BASE}/api/cards`,
+    method: 'GET',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => (res.data && res.data.owned) || [])
+    .catch(() => [])
+}
+
+/** 完成章节随机奖励一张娃娃卡（同一章只发一次） */
+export function awardDollCard(chapterId) {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/cards/award`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: { chapterId }
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
 /** 提交意见反馈（失败抛出，页面据此提示） */
 export async function sendFeedback(text) {
   const res = await Taro.request({
