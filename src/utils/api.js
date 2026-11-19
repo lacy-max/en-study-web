@@ -84,6 +84,20 @@ export async function login(name, code, phone) {
   return session
 }
 
+/** 首次登录时保存性别（之后不再问） */
+export function saveGender(gender) {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/gender`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: { gender }
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
 function authHeader() {
   const s = getSession()
   return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }

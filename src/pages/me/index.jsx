@@ -3,6 +3,7 @@ import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getSession, setSession } from '../../utils/api'
 import { getGame, setGender } from '../../utils/game'
+import { saveGender } from '../../utils/api'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import TabBar from '../../components/tabbar'
@@ -52,7 +53,10 @@ export default function Me() {
           <Text
             className='me-id'
             onClick={() => {
-              setGender(game.gender === 'girl' ? 'boy' : 'girl')
+              const next = game.gender === 'girl' ? 'boy' : 'girl'
+              setGender(next)
+              saveGender(next)
+              setGame(getGame())
               setGame(getGame())
             }}
           >

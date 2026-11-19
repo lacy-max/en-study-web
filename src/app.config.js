@@ -1,6 +1,7 @@
 export default {
   pages: [
     'pages/login/index',
+    'pages/gender/index',
     'pages/index/index',
     'pages/words/words',
     'pages/exercise/index',

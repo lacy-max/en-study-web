@@ -4,14 +4,13 @@ import Taro from '@tarojs/taro'
 import { login, getSession } from '../../utils/api'
 import { fetchProgress } from '../../utils/api'
 import { applyRemote } from '../../utils/storage'
-import { getGender, setGender } from '../../utils/game'
+import { setGender } from '../../utils/game'
 import './index.scss'
 
 export default function Login() {
   const session = getSession()
   const [name, setName] = useState(session ? session.name : '')
   const [code, setCode] = useState('')
-  const [gender, setGenderState] = useState(getGender())
   const [phone, setPhone] = useState((getSession() || {}).phone || '')
   const [loading, setLoading] = useState(false)
   const [tip, setTip] = useState('')
@@ -33,12 +32,17 @@ export default function Login() {
     setLoading(true)
     setTip('')
     try {
-      if (gender) setGender(gender)
-      await login(name.trim(), code.trim(), phone.trim())
+      const session = await login(name.trim(), code.trim(), phone.trim())
       const remote = await fetchProgress()
       applyRemote(remote)
-      Taro.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => Taro.redirectTo({ url: '/pages/index/index' }), 600)
+      // 老用户已选过性别 → 直接进首页；新用户 → 先选性别
+      if (session && session.gender) {
+        setGender(session.gender)
+        Taro.showToast({ title: '登录成功', icon: 'success' })
+        setTimeout(() => Taro.redirectTo({ url: '/pages/index/index' }), 600)
+      } else {
+        Taro.redirectTo({ url: '/pages/gender/index' })
+      }
     } catch (e) {
       setTip(e.message || '登录失败')
     } finally {
@@ -86,24 +90,6 @@ export default function Login() {
             value={phone}
             onInput={e => setPhone(e.detail.value)}
           />
-        </View>
-
-        <View className='login-field'>
-          <Text className='login-label'>性别（决定奖励卡牌样式）</Text>
-          <View className='login-gender'>
-            <View
-              className={`login-gender-item ${gender === 'boy' ? 'login-gender-on' : ''}`}
-              onClick={() => setGenderState('boy')}
-            >
-              <Text className='login-gender-t'>👦 男孩</Text>
-            </View>
-            <View
-              className={`login-gender-item ${gender === 'girl' ? 'login-gender-on' : ''}`}
-              onClick={() => setGenderState('girl')}
-            >
-              <Text className='login-gender-t'>👧 女孩</Text>
-            </View>
-          </View>
         </View>
 
         {tip ? <Text className='login-tip'>{tip}</Text> : null}

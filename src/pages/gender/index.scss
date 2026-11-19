@@ -1,0 +1,115 @@
+.gp-page {
+  min-height: 100vh;
+  padding: 80px 32px 0;
+  box-sizing: border-box;
+  background: #f0f4ff;
+}
+
+.gp-hello {
+  display: block;
+  font-size: 44px;
+  font-weight: 700;
+  color: #2b2f45;
+}
+
+.gp-sub {
+  display: block;
+  margin-top: 14px;
+  font-size: 26px;
+  color: #8a90a6;
+  line-height: 1.6;
+}
+
+.gp-label {
+  margin-top: 56px;
+}
+
+.gp-label-t {
+  font-size: 28px;
+  color: #6b7186;
+  font-weight: 600;
+}
+
+.gp-cards {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gp-card {
+  width: 48%;
+  padding: 44px 20px 36px;
+  border-radius: 28px;
+  background: #fff;
+  border: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(43, 47, 69, 0.06);
+  box-sizing: border-box;
+}
+
+.gp-card-on {
+  border-color: #6366f1;
+  background: #eef0ff;
+}
+
+.gp-emoji {
+  font-size: 76px;
+  line-height: 1;
+}
+
+.gp-name {
+  margin-top: 18px;
+  font-size: 34px;
+  font-weight: 700;
+  color: #2b2f45;
+}
+
+.gp-card-on .gp-name {
+  color: #6366f1;
+}
+
+.gp-desc {
+  margin-top: 10px;
+  font-size: 22px;
+  color: #9aa0b4;
+}
+
+.gp-note {
+  display: block;
+  margin-top: 34px;
+  font-size: 22px;
+  color: #a3a9bd;
+  text-align: center;
+}
+
+.gp-btn {
+  margin-top: 40px;
+  height: 96px;
+  border-radius: 48px;
+  background: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.28);
+}
+
+.gp-btn-off {
+  background: #c9cbf8;
+  box-shadow: none;
+}
+
+.gp-btn-t {
+  font-size: 30px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.gp-tip {
+  display: block;
+  margin-top: 24px;
+  font-size: 22px;
+  color: #ef4444;
+  text-align: center;
+}
