@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { getSession } from '../../utils/api'
+import { getSession, setSession } from '../../utils/api'
 import { getGame, setGender } from '../../utils/game'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
@@ -13,6 +13,19 @@ export default function Me() {
   const [game, setGame] = useState(getGame())
 
   useDidShow(() => setGame(getGame()))
+
+  const logout = () => {
+    Taro.showModal({
+      title: '退出登录',
+      content: '退出后需要重新输入昵称和口令，学习进度不会丢。',
+      confirmText: '退出',
+      confirmColor: '#6366f1'
+    }).then(res => {
+      if (!res.confirm) return
+      setSession(null)
+      Taro.reLaunch({ url: '/pages/login/index' })
+    })
+  }
 
   const stats = useMemo(() => {
     let doneChapters = 0
@@ -72,12 +85,16 @@ export default function Me() {
           <Text className='me-link-t'>💬 意见反馈</Text>
           <Text className='me-link-arrow'>›</Text>
         </View>
-        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/collection/collection' })}>
+        <View className='me-link me-link-soon' onClick={() => Taro.showToast({ title: '卡牌收藏即将开放', icon: 'none' })}>
           <Text className='me-link-t'>🎴 卡牌收藏</Text>
-          <Text className='me-link-arrow'>›</Text>
+          <Text className='me-link-soon-tag'>待开放</Text>
         </View>
       </View>
     
+      <View className='me-logout' onClick={logout}>
+        <Text className='me-logout-t'>退出登录</Text>
+      </View>
+
       <TabBar active='me' />
 </View>
   )

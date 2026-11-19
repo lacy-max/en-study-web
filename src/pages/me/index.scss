@@ -195,3 +195,32 @@
   font-size: 26px;
   color: #c3c8d4;
 }
+
+.me-link-soon {
+  opacity: 0.72;
+}
+
+.me-link-soon-tag {
+  font-size: 20px;
+  color: #b0b7c3;
+  background: #f3f5fa;
+  border-radius: 10px;
+  padding: 4px 12px;
+}
+
+.me-logout {
+  margin-top: 40px;
+  height: 88px;
+  border-radius: 22px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.06);
+}
+
+.me-logout-t {
+  font-size: 26px;
+  color: #ef4444;
+  font-weight: 600;
+}
