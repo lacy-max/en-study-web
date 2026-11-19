@@ -35,8 +35,6 @@ export default function Feedback() {
         <View className='fb-back' onClick={() => backOrHome()}>
           <Text className='fb-back-t'>‹ 返回</Text>
         </View>
-        <Text className='fb-title'>意见反馈</Text>
-        <Text className='fb-sub'>哪里不好用、想要什么功能，都可以告诉我</Text>
       </View>
 
       <View className='fb-card'>

@@ -9,6 +9,14 @@ import { backOrHome } from '../../utils/nav'
 import { Image } from '@tarojs/components'
 import './index.scss'
 
+// 释义收成词，不要长句/括号解释
+function shortCn(cn) {
+  return String(cn || '')
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .split(/[；;，,。]/)[0]
+    .trim()
+}
+
 export default function WordList() {
   const [tick, setTick] = useState(0)
   useDidShow(() => setTick(t => t + 1))
@@ -20,7 +28,7 @@ export default function WordList() {
       if (!p || !p.modes || !p.modes.study) return
       const words = (c.words || []).map(w => ({
         en: w.en,
-        cn: w.cn,
+        cn: shortCn(w.cn),
         chapterId: c.id,
         chapterTitle: c.title.replace(/^Unit\s*\d+\s*·\s*/, '')
       }))
@@ -38,8 +46,7 @@ export default function WordList() {
           <Text className='wl-back-t'>‹ 返回</Text>
         </View>
         <View className='wl-title-row'>
-          <Text className='wl-title'>学过的单词</Text>
-          <Text className='wl-count'>共 {total} 个</Text>
+          <Text className='wl-count'>共 {total} 个单词</Text>
         </View>
       </View>
 

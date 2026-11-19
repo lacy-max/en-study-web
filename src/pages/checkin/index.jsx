@@ -46,7 +46,6 @@ export default function Checkin() {
         <View className='ck-back' onClick={() => backOrHome()}>
           <Text className='ck-back-t'>‹ 返回</Text>
         </View>
-        <Text className='ck-title'>打卡</Text>
       </View>
 
       <View className={`ck-hero ${todayDone ? 'ck-hero-done' : ''}`}>

@@ -58,7 +58,7 @@ export default function Me() {
           <Text className='me-stat-num'>{stats.doneChapters}</Text>
           <Text className='me-stat-label'>学完章节</Text>
         </View>
-        <View className='me-stat'>
+        <View className='me-stat' onClick={() => Taro.navigateTo({ url: '/pages/wordlist/index' })}>
           <Text className='me-stat-num'>{stats.words}</Text>
           <Text className='me-stat-label'>学过单词</Text>
         </View>
@@ -67,10 +67,6 @@ export default function Me() {
       <View className='me-links'>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/feedback/index' })}>
           <Text className='me-link-t'>💬 意见反馈</Text>
-          <Text className='me-link-arrow'>›</Text>
-        </View>
-        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/wordlist/index' })}>
-          <Text className='me-link-t'>📖 学过的单词</Text>
           <Text className='me-link-arrow'>›</Text>
         </View>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/checkin/index' })}>
