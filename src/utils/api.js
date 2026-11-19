@@ -98,6 +98,24 @@ export function saveGender(gender) {
     .catch(() => null)
 }
 
+/** 校验本地登录态是否还有效（返回 {ok, data}，网络错误不清登录） */
+export function fetchMe() {
+  const s = getSession()
+  if (!s || !s.token) return Promise.resolve({ ok: false, data: null })
+  return Taro.request({
+    url: `${API_BASE}/api/me`,
+    method: 'GET',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => {
+      if (res.statusCode === 200) return { ok: true, data: res.data }
+      if (res.statusCode === 401) return { ok: false, data: null }
+      return { ok: true, data: s }
+    })
+    .catch(() => ({ ok: true, data: s }))
+}
+
 function authHeader() {
   const s = getSession()
   return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }

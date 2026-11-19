@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, Input, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { login, getSession } from '../../utils/api'
+import { login, getSession, fetchMe, setSession } from '../../utils/api'
 import { fetchProgress } from '../../utils/api'
 import { applyRemote } from '../../utils/storage'
 import { setGender } from '../../utils/game'
@@ -13,7 +13,24 @@ export default function Login() {
   const [code, setCode] = useState('')
   const [phone, setPhone] = useState((getSession() || {}).phone || '')
   const [loading, setLoading] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   const [tip, setTip] = useState('')
+
+  // 已经登录过就直接回到首页，不用再输口令
+  useEffect(() => {
+    const s = getSession()
+    if (!s || !s.token) return
+    setRestoring(true)
+    fetchMe().then(res => {
+      if (res.ok) {
+        if (res.data && res.data.gender) setGender(res.data.gender)
+        Taro.reLaunch({ url: '/pages/index/index' })
+        return
+      }
+      setSession(null)
+      setRestoring(false)
+    })
+  }, [])
 
   const submit = async () => {
     if (loading) return
@@ -48,6 +65,17 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (restoring) {
+    return (
+      <View className='login-page'>
+        <View className='login-card login-restoring'>
+          <Text className='login-emoji'>🌳</Text>
+          <Text className='login-sub'>正在恢复上次的登录…</Text>
+        </View>
+      </View>
+    )
   }
 
   return (
