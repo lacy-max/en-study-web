@@ -4,6 +4,7 @@ import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { loadChapters, findChapter, fetchProgress } from '../../utils/api'
 import { getChapterProgress, applyRemote, saveChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
+import { goHome } from '../../utils/nav'
 import './index.scss'
 
 export default function Exercise() {
@@ -167,7 +168,7 @@ export default function Exercise() {
       </View>
 
       <View className='ex-foot'>
-        <View className='ex-back' onClick={() => Taro.navigateBack()}>
+        <View className='ex-back' onClick={() => goHome()}>
           <Text className='ex-back-t'>返回首页</Text>
         </View>
       </View>

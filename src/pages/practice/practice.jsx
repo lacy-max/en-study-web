@@ -5,6 +5,7 @@ import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters, findChapter, getPracticeStates, savePracticeState } from '../../utils/api'
 import { API_BASE } from '../../utils/config'
 import { speak, warmTTS, stopSpeak } from '../../utils/tts'
+import { backOrHome } from '../../utils/nav'
 import { playWrong } from '../../utils/sfx'
 import { picOf } from '../../data/pics'
 import {
@@ -1280,7 +1281,7 @@ export default function Practice({ fixedMode }) {
             <View className='modal-btn' onClick={restart}>
               <Text className='modal-btn-t'>再来一轮</Text>
             </View>
-            <View className='modal-btn ghost' onClick={() => Taro.navigateBack()}>
+            <View className='modal-btn ghost' onClick={() => backOrHome()}>
               <Text className='modal-btn-t ghost-t'>返回单元列表</Text>
             </View>
           </View>

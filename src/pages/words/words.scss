@@ -208,3 +208,99 @@
 .wd-sentence-en {
   flex: 1;
 }
+
+.wd-back {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+}
+
+.wd-back-t {
+  font-size: 15px;
+  color: #6366f1;
+}
+
+.wd-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 20, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+}
+
+.wd-modal {
+  width: 620px;
+  max-width: 84vw;
+  background: #fff;
+  border-radius: 32px;
+  padding: 60px 44px 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wd-modal-emoji {
+  font-size: 96px;
+  line-height: 1;
+  margin-bottom: 24px;
+}
+
+.wd-modal-title {
+  font-size: 44px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 18px;
+}
+
+.wd-modal-sub {
+  font-size: 28px;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.wd-modal-badge {
+  padding: 10px 26px;
+  border-radius: 999px;
+  background: #eef1ff;
+  margin-bottom: 36px;
+}
+
+.wd-modal-badge-t {
+  font-size: 28px;
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.wd-modal-btn {
+  width: 100%;
+  height: 96px;
+  border-radius: 24px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.wd-modal-btn-main {
+  background: #6366f1;
+}
+
+.wd-modal-btn-t {
+  font-size: 32px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.wd-modal-btn-t-main {
+  color: #fff;
+}

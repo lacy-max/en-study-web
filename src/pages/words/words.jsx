@@ -6,6 +6,7 @@ import { chapters as fallbackChapters } from '../../data/chapters'
 import { getSettings, saveChapterProgress } from '../../utils/storage'
 import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
+import { backOrHome, goHome } from '../../utils/nav'
 import './words.scss'
 
 /** 第一关：学单词 —— 把这一课的单词先过一遍，看完才能去第二关闯关 */
@@ -14,6 +15,7 @@ export default function Words() {
   const chapterId = router.params.chapterId || 'unit01'
   const [list, setList] = useState(fallbackChapters)
   const [idx, setIdx] = useState(0)
+  const [showDone, setShowDone] = useState(false)
   const [settings] = useState(getSettings())
 
   useEffect(() => {
@@ -53,20 +55,8 @@ export default function Words() {
   const finish = () => {
     saveChapterProgress(chapterId, { modes: { study: true }, doneDays: [1] })
     stopSpeak()
-    // 学完先给个鼓励，不自动跳进下一关
-    Taro.showModal({
-      title: '太棒了！🎉',
-      content: `这一课的 ${words.length} 个单词你都看完了，真厉害！\n休息一下，准备好就去闯关吧。`,
-      confirmText: '去闯关',
-      cancelText: '回首页',
-      success: res => {
-        if (res.confirm) {
-          Taro.redirectTo({ url: `/pages/dictation/dictation?chapterId=${chapterId}&day=2` })
-        } else {
-          Taro.navigateBack()
-        }
-      }
-    })
+    // 学完先弹自己的完成卡片（不自动跳进下一关）
+    setShowDone(true)
   }
 
   if (!cur) {
@@ -82,6 +72,9 @@ export default function Words() {
   return (
     <View className='wd-page'>
       <View className='wd-head'>
+        <View className='wd-back' onClick={() => backOrHome()}>
+          <Text className='wd-back-t'>‹ 返回</Text>
+        </View>
         <Text className='wd-title'>{chapter.title}</Text>
         <Text className='wd-sub'>第1天 · 学单词 · 看一遍再去闯关</Text>
         <View className='wd-prog'>
@@ -138,6 +131,32 @@ export default function Words() {
       </View>
 
       <Text className='wd-tip'>看完这一课的单词，第二关的练习才会打开哦</Text>
+
+      {showDone && (
+        <View className='wd-mask'>
+          <View className='wd-modal'>
+            <Text className='wd-modal-emoji'>🎉</Text>
+            <Text className='wd-modal-title'>学完啦！</Text>
+            <Text className='wd-modal-sub'>
+              这一课的 {words.length} 个单词都看完了，真厉害！
+            </Text>
+            <View className='wd-modal-badge'>
+              <Text className='wd-modal-badge-t'>⭐ +{words.length}</Text>
+            </View>
+            <View
+              className='wd-modal-btn wd-modal-btn-main'
+              onClick={() =>
+                Taro.redirectTo({ url: `/pages/dictation/dictation?chapterId=${chapterId}&day=2` })
+              }
+            >
+              <Text className='wd-modal-btn-t wd-modal-btn-t-main'>去闯关</Text>
+            </View>
+            <View className='wd-modal-btn' onClick={() => goHome()}>
+              <Text className='wd-modal-btn-t'>回首页</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
