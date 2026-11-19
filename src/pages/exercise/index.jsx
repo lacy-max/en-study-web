@@ -168,11 +168,6 @@ export default function Exercise() {
         ))}
       </View>
 
-      <View className='ex-foot'>
-        <View className='ex-back' onClick={() => goHome()}>
-          <Text className='ex-back-t'>返回首页</Text>
-        </View>
-      </View>
           <TabBar active='home' />
 </View>
   )
