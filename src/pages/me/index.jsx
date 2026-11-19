@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getSession, setSession } from '../../utils/api'
 import { getGame } from '../../utils/game'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import TabBar from '../../components/tabbar'
+import GirlAvatar from '../../assets/mascot/girl-avatar.png'
 import './index.scss'
 
 export default function Me() {
@@ -44,7 +45,11 @@ export default function Me() {
     <View className='me-page'>
       <View className='me-profile'>
         <View className='me-avatar'>
-          <Text className='me-avatar-t'>🐰</Text>
+          {game.gender === 'girl' ? (
+            <Image className='me-avatar-img' src={GirlAvatar} mode='aspectFit' />
+          ) : (
+            <Text className='me-avatar-t'>🐰</Text>
+          )}
         </View>
         <View className='me-info'>
           <Text className='me-name'>{session.name || '小朋友'}</Text>
