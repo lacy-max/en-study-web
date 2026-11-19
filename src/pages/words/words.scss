@@ -210,16 +210,23 @@
 }
 
 .wd-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   align-self: flex-start;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
   margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .wd-back-t {
   font-size: 15px;
+  line-height: 1;
   color: #6366f1;
+  white-space: nowrap;
 }
 
 .wd-mask {

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, Textarea } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { getSession, sendFeedback } from '../../utils/api'
+import { getSession } from '../../utils/api'
 import { getGame } from '../../utils/game'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
@@ -11,8 +11,6 @@ import './index.scss'
 export default function Me() {
   const session = getSession() || {}
   const [game, setGame] = useState(getGame())
-  const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
 
   useDidShow(() => setGame(getGame()))
 
@@ -29,32 +27,12 @@ export default function Me() {
     return { doneChapters, words }
   }, [game])
 
-  const submit = async () => {
-    if (sending) return
-    const v = text.trim()
-    if (!v) {
-      Taro.showToast({ title: '先写点内容吧', icon: 'none' })
-      return
-    }
-    setSending(true)
-    try {
-      await sendFeedback(v)
-      setText('')
-      Taro.showToast({ title: '谢谢你的反馈！', icon: 'success' })
-    } catch (e) {
-      Taro.showToast({ title: '网络不太好，稍后再试', icon: 'none' })
-    } finally {
-      setSending(false)
-    }
-  }
-
   return (
     <View className='me-page'>
       <View className='me-head'>
         <View className='me-back' onClick={() => backOrHome()}>
           <Text className='me-back-t'>‹ 返回</Text>
         </View>
-        <Text className='me-title'>我的</Text>
       </View>
 
       <View className='me-profile'>
@@ -86,23 +64,11 @@ export default function Me() {
         </View>
       </View>
 
-      <View className='me-feedback'>
-        <Text className='me-feedback-title'>意见反馈</Text>
-        <Text className='me-feedback-sub'>哪里不好用、想要什么功能，都可以告诉我</Text>
-        <Textarea
-          className='me-input'
-          placeholder='比如：单词页希望加慢速朗读'
-          maxlength={200}
-          value={text}
-          onInput={e => setText(e.detail.value)}
-        />
-        <Text className='me-count'>{text.length}/200</Text>
-        <View className={`me-btn ${sending ? 'me-btn-off' : ''}`} onClick={submit}>
-          <Text className='me-btn-t'>{sending ? '提交中…' : '提交反馈'}</Text>
-        </View>
-      </View>
-
       <View className='me-links'>
+        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/feedback/index' })}>
+          <Text className='me-link-t'>💬 意见反馈</Text>
+          <Text className='me-link-arrow'>›</Text>
+        </View>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/checkin/index' })}>
           <Text className='me-link-t'>📅 我的打卡</Text>
           <Text className='me-link-arrow'>›</Text>

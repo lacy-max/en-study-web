@@ -10,7 +10,8 @@ export default {
     'pages/cross/cross',
     'pages/collection/collection',
     'pages/checkin/index',
-    'pages/me/index'
+    'pages/me/index',
+    'pages/feedback/index'
   ],
   window: {
     backgroundTextStyle: 'light',
