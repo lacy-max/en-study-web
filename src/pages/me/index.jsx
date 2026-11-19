@@ -5,7 +5,7 @@ import { getSession } from '../../utils/api'
 import { getGame } from '../../utils/game'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
-import { backOrHome } from '../../utils/nav'
+import TabBar from '../../components/tabbar'
 import './index.scss'
 
 export default function Me() {
@@ -29,12 +29,6 @@ export default function Me() {
 
   return (
     <View className='me-page'>
-      <View className='me-head'>
-        <View className='me-back' onClick={() => backOrHome()}>
-          <Text className='me-back-t'>‹ 返回</Text>
-        </View>
-      </View>
-
       <View className='me-profile'>
         <View className='me-avatar'>
           <Text className='me-avatar-t'>🐰</Text>
@@ -69,15 +63,13 @@ export default function Me() {
           <Text className='me-link-t'>💬 意见反馈</Text>
           <Text className='me-link-arrow'>›</Text>
         </View>
-        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/checkin/index' })}>
-          <Text className='me-link-t'>📅 我的打卡</Text>
-          <Text className='me-link-arrow'>›</Text>
-        </View>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/collection/collection' })}>
           <Text className='me-link-t'>🎴 卡牌收藏</Text>
           <Text className='me-link-arrow'>›</Text>
         </View>
       </View>
-    </View>
+    
+      <TabBar active='me' />
+</View>
   )
 }

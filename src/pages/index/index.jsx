@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
+import TabBar from '../../components/tabbar'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters } from '../../utils/api'
 import { getChapterProgress, applyRemote, saveChapterProgress } from '../../utils/storage'
@@ -162,16 +163,10 @@ export default function Index() {
           )
         })}
       </View>
-      <View className='khome-entries'>
-        <View className='khome-entry' onClick={() => Taro.navigateTo({ url: '/pages/checkin/index' })}>
-          <Text className='khome-entry-t'>📅 打卡</Text>
-        </View>
-        <View className='khome-entry' onClick={() => Taro.navigateTo({ url: '/pages/me/index' })}>
-          <Text className='khome-entry-t'>🙂 我的</Text>
-        </View>
-      </View>
       <Text className='khome-tip'>点卡片开始 · 第 1 天学单词，第 2 天闯关</Text>
       <DailyHint />
-    </View>
+    
+      <TabBar active='home' />
+</View>
   )
 }

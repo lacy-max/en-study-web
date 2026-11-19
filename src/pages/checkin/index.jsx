@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getGame } from '../../utils/game'
-import { backOrHome } from '../../utils/nav'
+import TabBar from '../../components/tabbar'
 import './index.scss'
 
 function todayStr() {
@@ -52,12 +52,6 @@ export default function Checkin() {
 
   return (
     <View className='ck-page'>
-      <View className='ck-head'>
-        <View className='ck-back' onClick={() => backOrHome()}>
-          <Text className='ck-back-t'>‹ 返回</Text>
-        </View>
-      </View>
-
       <View className={`ck-hero ${todayDone ? 'ck-hero-done' : ''}`}>
         <Text className='ck-hero-emoji'>{todayDone ? '🌟' : '🌱'}</Text>
         <Text className='ck-hero-title'>{todayDone ? '今天已经打卡啦' : '今天还没打卡'}</Text>
@@ -126,6 +120,7 @@ export default function Checkin() {
       </View>
 
       <Text className='ck-tip'>每天学完一节就算打卡，断一天连续天数会重新开始</Text>
+      <TabBar active='checkin' />
     </View>
   )
 }

@@ -408,7 +408,7 @@
 
 /* ================= 儿童模式首页 ================= */
 .khome {
-  padding-bottom: 240px;
+  padding-bottom: 170px;
   min-height: 100vh;
   background: linear-gradient(170deg, #eef2ff 0%, #fdf2f8 55%, #ecfeff 100%);
   padding: 40px 28px 60px;
@@ -609,22 +609,3 @@
   color: #9c7a5c;
 }
 
-.khome-entries {
-  display: flex;
-  justify-content: center;
-  margin-top: 26px;
-}
-
-.khome-entry {
-  padding: 14px 32px;
-  border-radius: 999px;
-  background: #fff;
-  margin: 0 10px;
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.1);
-}
-
-.khome-entry-t {
-  font-size: 24px;
-  color: #6366f1;
-  font-weight: 600;
-}
