@@ -17,8 +17,12 @@ export default function Checkin() {
   useDidShow(() => setGame(getGame()))
 
   const today = todayStr()
-  const days = game.days || []
-  const todayDone = days.indexOf(today) >= 0 || game.lastDay === today
+  const raw = game.days || []
+  // 兼容老数据：只有 lastDay 没有 days 的账号，把今天补进来
+  const days = raw.indexOf(today) >= 0 || game.lastDay !== today
+    ? raw
+    : raw.concat([today])
+  const todayDone = days.indexOf(today) >= 0
 
   const month = useMemo(() => {
     const d = new Date()
@@ -33,7 +37,13 @@ export default function Checkin() {
       const mm = `${m + 1}`.padStart(2, '0')
       const dd = `${i}`.padStart(2, '0')
       const key = `${y}-${mm}-${dd}`
-      cells.push({ day: i, key, done: days.indexOf(key) >= 0, isToday: key === today })
+      cells.push({
+          day: i,
+          key,
+          done: days.indexOf(key) >= 0 || (key === today && game.lastDay === today),
+          isToday: key === today,
+          isFuture: key > today
+        })
     }
     return { title: `${y} 年 ${m + 1} 月`, cells }
   }, [days, today])
@@ -83,14 +93,35 @@ export default function Checkin() {
         <View className='ck-grid'>
           {month.cells.map((c, i) => (
             <View
-              className={`ck-cell ${c && c.done ? 'ck-cell-done' : ''} ${c && c.isToday ? 'ck-cell-today' : ''}`}
+              className={[
+                'ck-cell',
+                c && c.done && 'ck-cell-done',
+                c && c.isToday && 'ck-cell-today',
+                c && !c.done && !c.isFuture && 'ck-cell-miss',
+                c && c.isFuture && 'ck-cell-future'
+              ].filter(Boolean).join(' ')}
               key={i}
             >
               {c ? (
-                <Text className='ck-cell-t'>{c.day}</Text>
+                <View className='ck-cell-inner'>
+                  <Text className='ck-cell-t'>{c.day}</Text>
+                  <Text className={`ck-cell-badge ${c.done ? 'ck-cell-badge-on' : ''}`}>
+                    {c.done ? '打卡' : c.isFuture ? '' : '未打'}
+                  </Text>
+                </View>
               ) : null}
             </View>
           ))}
+        </View>
+        <View className='ck-legend'>
+          <View className='ck-legend-item'>
+            <View className='ck-legend-dot ck-legend-dot-on' />
+            <Text className='ck-legend-t'>已打卡</Text>
+          </View>
+          <View className='ck-legend-item'>
+            <View className='ck-legend-dot ck-legend-dot-off' />
+            <Text className='ck-legend-t'>未打卡</Text>
+          </View>
         </View>
       </View>
 
