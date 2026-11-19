@@ -104,10 +104,9 @@ export default function Exercise() {
   }
 
   const open = key => {
-    // 第一关还没看单词，先把人送回第一关
+    // 第一关还没看单词，直接把人带到第一关（不弹提示）
     if (!studyDone) {
-      Taro.showToast({ title: '先看完第一关的单词哦', icon: 'none', duration: 1500 })
-      setTimeout(() => openWords(), 600)
+      openWords()
       return
     }
     Taro.navigateTo({ url: `/pages/${key}/${key}?chapterId=${chapterId}&day=2` })
