@@ -104,11 +104,6 @@ export default function Exercise() {
   }
 
   const open = key => {
-    // 第一关还没看单词，直接把人带到第一关（不弹提示）
-    if (!studyDone) {
-      openWords()
-      return
-    }
     Taro.navigateTo({ url: `/pages/${key}/${key}?chapterId=${chapterId}&day=2` })
   }
 
