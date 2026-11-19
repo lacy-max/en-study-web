@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getSession, setSession } from '../../utils/api'
-import { getGame, setGender } from '../../utils/game'
-import { saveGender } from '../../utils/api'
+import { getGame } from '../../utils/game'
 import { getChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import TabBar from '../../components/tabbar'
@@ -50,18 +49,6 @@ export default function Me() {
         <View className='me-info'>
           <Text className='me-name'>{session.name || '小朋友'}</Text>
           <Text className='me-id'>账号 ID：{session.uid || '未登录'}</Text>
-          <Text
-            className='me-id'
-            onClick={() => {
-              const next = game.gender === 'girl' ? 'boy' : 'girl'
-              setGender(next)
-              saveGender(next)
-              setGame(getGame())
-              setGame(getGame())
-            }}
-          >
-            {game.gender === 'girl' ? '👧 女孩（完成一关送娃娃卡）' : '👦 男孩'}
-          </Text>
         </View>
       </View>
 
