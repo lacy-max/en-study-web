@@ -5,7 +5,6 @@ import { loadChapters, findChapter, fetchProgress } from '../../utils/api'
 import { getChapterProgress, applyRemote, saveChapterProgress } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { goHome } from '../../utils/nav'
-import DailyHint from '../../components/daily-hint'
 import './index.scss'
 
 export default function Exercise() {
@@ -168,7 +167,6 @@ export default function Exercise() {
         ))}
       </View>
 
-      <DailyHint />
       <View className='ex-foot'>
         <View className='ex-back' onClick={() => goHome()}>
           <Text className='ex-back-t'>返回首页</Text>
