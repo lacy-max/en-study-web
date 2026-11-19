@@ -1158,12 +1158,10 @@ export default function Practice({ fixedMode }) {
           </View>
 
           <View className='btn-row'>
-            <View className='ghost-btn' onClick={() => speak(crossQ.audio, settings.rate)}>
-              <Text className='ghost-btn-t'>{crossQ.type === 's2e' ? '朗读整句' : '再听一遍'}</Text>
-            </View>
+            <View className='speak-btn' onClick={() => speak(crossQ.audio, settings.rate)} />
             {settings.autoNext && (
-              <View className='ghost-btn' onClick={() => goCross(crossIdx + 1)}>
-                <Text className='ghost-btn-t'>跳过</Text>
+              <View className='next-btn' onClick={() => goCross(crossIdx + 1)}>
+                <Text className='next-btn-t'>→</Text>
               </View>
             )}
             {!settings.autoNext && (
