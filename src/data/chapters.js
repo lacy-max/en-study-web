@@ -84,5 +84,29 @@ export const chapters = [
       { en: 'age', cn: '年龄；几岁', sentence: 'What is his age?', answer: 'age', sentenceCn: '他几岁了？' }
     ],
     sentences: []
+  },
+  {
+    id: 'unit04',
+    level: 'L0',
+    title: 'Unit 04 · 动物',
+    subtitle: 'L0 启蒙 · 15 个词 · 3 岁起',
+    words: [
+      { en: 'cat', cn: '猫', sentence: 'The cat is small.', answer: 'cat', sentenceCn: '这只猫很小。' },
+      { en: 'dog', cn: '狗', sentence: 'My dog can run.', answer: 'dog', sentenceCn: '我的狗会跑。' },
+      { en: 'bird', cn: '鸟', sentence: 'A bird can fly.', answer: 'bird', sentenceCn: '鸟会飞。' },
+      { en: 'fish', cn: '鱼', sentence: 'The fish is in water.', answer: 'fish', sentenceCn: '鱼在水里。' },
+      { en: 'duck', cn: '鸭子', sentence: 'Two ducks swim.', answer: 'duck', sentenceCn: '两只鸭子游泳。' },
+      { en: 'pig', cn: '猪', sentence: 'The pig is pink.', answer: 'pig', sentenceCn: '这头猪是粉色的。' },
+      { en: 'cow', cn: '奶牛', sentence: 'A cow says moo.', answer: 'cow', sentenceCn: '奶牛叫哞哞。' },
+      { en: 'sheep', cn: '绵羊', sentence: 'The sheep is white.', answer: 'sheep', sentenceCn: '这只绵羊是白色的。' },
+      { en: 'rabbit', cn: '兔子', sentence: 'The rabbit can jump.', answer: 'rabbit', sentenceCn: '兔子会跳。' },
+      { en: 'monkey', cn: '猴子', sentence: 'The monkey likes bananas.', answer: 'monkey', sentenceCn: '猴子喜欢香蕉。' },
+      { en: 'tiger', cn: '老虎', sentence: 'A tiger is big.', answer: 'tiger', sentenceCn: '老虎很大。' },
+      { en: 'panda', cn: '熊猫', sentence: 'The panda eats bamboo.', answer: 'panda', sentenceCn: '熊猫吃竹子。' },
+      { en: 'elephant', cn: '大象', sentence: 'An elephant is huge.', answer: 'elephant', sentenceCn: '大象非常大。' },
+      { en: 'animal', cn: '动物', sentence: 'I like animals.', answer: 'animal', sentenceCn: '我喜欢动物。' },
+      { en: 'zoo', cn: '动物园', sentence: 'Let us go to the zoo.', answer: 'zoo', sentenceCn: '我们去动物园吧。' }
+    ],
+    sentences: []
   }
 ]

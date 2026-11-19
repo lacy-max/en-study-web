@@ -7,6 +7,23 @@
  */
 
 const PICS = {
+  // ---- L0 动物 ----
+  cat: '🐱',
+  dog: '🐶',
+  bird: '🐦',
+  fish: '🐟',
+  duck: '🦆',
+  pig: '🐷',
+  cow: '🐮',
+  sheep: '🐑',
+  rabbit: '🐰',
+  monkey: '🐵',
+  tiger: '🐯',
+  panda: '🐼',
+  elephant: '🐘',
+  animal: '🐾',
+  zoo: '🦁',
+
   // ---- L0 打招呼 ----
   hi: '👋',
   hello: '👋',
