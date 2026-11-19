@@ -1,0 +1,54 @@
+.dh-wrap {
+  position: fixed;
+  left: 24px;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-start;
+  max-width: 82vw;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.dh-avatar {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  margin-right: 12px;
+  animation: dh-bob 2.4s ease-in-out infinite;
+}
+
+.dh-bubble {
+  position: relative;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 18px;
+  padding: 14px 34px 14px 18px;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.16);
+  pointer-events: auto;
+}
+
+.dh-text {
+  font-size: 22px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.dh-close {
+  position: absolute;
+  right: 8px;
+  top: 2px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dh-close-t {
+  font-size: 22px;
+  color: #b3b9c6;
+}
+
+@keyframes dh-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}

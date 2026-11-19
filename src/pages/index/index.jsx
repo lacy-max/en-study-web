@@ -7,6 +7,7 @@ import { getChapterProgress, applyRemote, saveChapterProgress } from '../../util
 import { getSession, fetchProgress } from '../../utils/api'
 import { CARDS } from '../../data/cards'
 import { topicIcon } from '../../data/pics'
+import DailyHint from '../../components/daily-hint'
 import './index.scss'
 
 import AnimalCat from '../../assets/mascot/hi.png'
@@ -162,6 +163,7 @@ export default function Index() {
         })}
       </View>
       <Text className='khome-tip'>点卡片开始 · 第 1 天学单词，第 2 天闯关</Text>
+      <DailyHint />
     </View>
   )
 }
