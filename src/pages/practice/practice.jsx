@@ -22,7 +22,7 @@ import {
   updateBestCombo,
   getGame
 } from '../../utils/game'
-import { CARDS } from '../../data/cards'
+import { CARDS, dollForChapter } from '../../data/cards'
 import PetHi from '../../assets/mascot/hi.png'
 import PetGo from '../../assets/mascot/go.png'
 import PetYay from '../../assets/mascot/yay.png'
@@ -234,6 +234,7 @@ export default function Practice({ fixedMode }) {
   const [celebrate, setCelebrate] = useState('')
   const [earnedStars, setEarnedStars] = useState(0)
   const [newCard, setNewCard] = useState(null)
+  const [newDoll, setNewDoll] = useState(null)
 
   useEffect(() => {
     const arr = pageWords.map((_, i) => i)
@@ -809,12 +810,22 @@ export default function Practice({ fixedMode }) {
 
     const isNewCard = unlockCard(chapterId)
     setNewCard(isNewCard ? CARDS[chapterId] || null : null)
+
+    // 女孩专属：每完成一关奖励一张原创卡通娃娃卡
+    let doll = null
+    if ((getGame().gender || '') === 'girl') {
+      const idx = chaptersList.findIndex(c => c.id === chapterId)
+      const pick = dollForChapter(idx < 0 ? 0 : idx)
+      if (pick && unlockCard(pick.id)) doll = pick
+    }
+    setNewDoll(doll)
     if ((getGame().cards || []).length >= 3) addBadge('collector')
   }
   const restart = () => {
     setShowResult(false)
     setEarnedStars(0)
     setNewCard(null)
+    setNewDoll(null)
     comboRef.current = 0
     setScore(0)
     scoreRef.current = 0
@@ -1276,6 +1287,9 @@ export default function Practice({ fixedMode }) {
               <Text className='modal-star'>⭐ +{earnedStars}</Text>
               {newCard && (
                 <Text className='modal-card'>解锁卡牌 {newCard.emoji} {newCard.title}</Text>
+              )}
+              {newDoll && (
+                <Text className='modal-card'>娃娃卡 +1 {newDoll.emoji} {newDoll.title}</Text>
               )}
             </View>
             <View className='modal-btn' onClick={restart}>

@@ -14,6 +14,25 @@ export const CARDS = {
   unit10: { id: 'unit10', emoji: '🩺', title: '健康与身体', color: '#f87171', color2: '#fca5a5', animal: 'bear' }
 }
 
+/** 女孩专属奖励：每完成一关解锁一张原创卡通娃娃卡（自绘 emoji 风格，不涉及他人 IP） */
+export const DOLL_CARDS = [
+  { id: 'doll01', emoji: '🎀', title: '蝴蝶结娃娃', color: '#f9a8d4', color2: '#fbcfe8' },
+  { id: 'doll02', emoji: '👧', title: '马尾娃娃', color: '#fda4af', color2: '#fecdd3' },
+  { id: 'doll03', emoji: '🌸', title: '樱花娃娃', color: '#f0abfc', color2: '#f5d0fe' },
+  { id: 'doll04', emoji: '🧸', title: '抱熊娃娃', color: '#fdba74', color2: '#fed7aa' },
+  { id: 'doll05', emoji: '🍭', title: '糖果娃娃', color: '#a5b4fc', color2: '#c7d2fe' },
+  { id: 'doll06', emoji: '🌷', title: '郁金香娃娃', color: '#fca5a5', color2: '#fecaca' },
+  { id: 'doll07', emoji: '🦄', title: '独角兽娃娃', color: '#c4b5fd', color2: '#ddd6fe' },
+  { id: 'doll08', emoji: '🌈', title: '彩虹娃娃', color: '#93c5fd', color2: '#bfdbfe' }
+]
+
+/** 按章节顺序分配娃娃卡（第 1 关给第 1 张，超过 8 关循环） */
+export function dollForChapter(chapterIndex) {
+  if (DOLL_CARDS.length === 0) return null
+  const i = Math.max(0, chapterIndex) % DOLL_CARDS.length
+  return DOLL_CARDS[i]
+}
+
 /** 宝箱里能开出的伙伴配饰 */
 export const ACCESSORIES = [
   { id: 'cap', emoji: '🎩', name: '小礼帽' },

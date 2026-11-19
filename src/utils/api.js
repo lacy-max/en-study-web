@@ -68,13 +68,13 @@ export function setSession(session) {
   } catch (e) {}
 }
 
-export async function login(name, code) {
+export async function login(name, code, phone) {
   const res = await Taro.request({
     url: `${API_BASE}/api/login`,
     method: 'POST',
     timeout: 6000,
     header: { 'Content-Type': 'application/json' },
-    data: { name, code }
+    data: { name, code, phone: phone || '' }
   })
   if (res.statusCode !== 200) {
     throw new Error((res.data && res.data.detail) || '登录失败')

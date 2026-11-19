@@ -3,7 +3,7 @@ import { View, Text } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
 import { chapters } from '../../data/chapters'
 import { getGame } from '../../utils/game'
-import { CARDS, BADGES, ACCESSORIES } from '../../data/cards'
+import { CARDS, DOLL_CARDS, BADGES, ACCESSORIES } from '../../data/cards'
 import { getChapterProgress } from '../../utils/storage'
 import './collection.scss'
 
@@ -21,7 +21,9 @@ export default function Collection() {
       <View className='col-head'>
         <Text className='col-title'>我的收藏</Text>
         <Text className='col-sub'>
-          卡牌 {(game.cards || []).length}/{cards.length} · 徽章 {(game.badges || []).length}/{BADGES.length}
+          卡牌 {(game.cards || []).filter(id => id.indexOf('doll') !== 0).length}/{cards.length} · 娃娃卡{' '}
+          {(game.cards || []).filter(id => id.indexOf('doll') === 0).length}/{DOLL_CARDS.length} · 徽章{' '}
+          {(game.badges || []).length}/{BADGES.length}
         </Text>
       </View>
 
@@ -49,6 +51,29 @@ export default function Collection() {
           })}
         </View>
       </View>
+
+      {/* 娃娃卡册（女孩专属奖励） */}
+      {(game.gender === 'girl' || (game.cards || []).some(id => id.indexOf('doll') === 0)) && (
+        <View className='col-section'>
+          <Text className='col-sec-title'>娃娃卡牌</Text>
+          <View className='card-grid'>
+            {DOLL_CARDS.map((card, i) => {
+              const owned = (game.cards || []).indexOf(card.id) >= 0
+              return (
+                <View
+                  className={`word-card ${owned ? 'word-card-on' : ''}`}
+                  key={card.id}
+                  style={owned ? { background: `linear-gradient(150deg, ${card.color}, ${card.color2})` } : {}}
+                >
+                  <Text className='word-card-emoji'>{owned ? card.emoji : '❔'}</Text>
+                  <Text className='word-card-title'>{owned ? card.title : '完成一关解锁'}</Text>
+                  <Text className='word-card-no'>Doll.{i + 1}</Text>
+                </View>
+              )
+            })}
+          </View>
+        </View>
+      )}
 
       {/* 徽章 */}
       <View className='col-section'>

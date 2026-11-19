@@ -102,3 +102,40 @@
   line-height: 1.6;
   text-align: center;
 }
+
+.login-gender {
+  display: flex;
+  margin-top: 12px;
+}
+
+.login-gender-item {
+  flex: 1;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #f4f6ff;
+  margin-right: 16px;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+}
+
+.login-gender-item:last-child {
+  margin-right: 0;
+}
+
+.login-gender-on {
+  background: #ede9ff;
+  border-color: #6366f1;
+}
+
+.login-gender-t {
+  font-size: 26px;
+  color: #4b5563;
+}
+
+.login-gender-on .login-gender-t {
+  color: #6366f1;
+  font-weight: 600;
+}

@@ -8,6 +8,7 @@ export const CHEST_COST = 50
 const EMPTY = {
   stars: 0, // 累计总星
   cards: [], // 已解锁卡牌 id
+  gender: '', // 'boy' | 'girl'，决定奖励样式
   badges: [], // 徽章 id
   accessories: [], // 宝箱配饰 id
   chestUsed: 0, // 已投入宝箱的星星
@@ -63,6 +64,16 @@ export function touchToday() {
   const streak = g.lastDay === yesterdayStr() ? g.streak + 1 : 1
   const days = (g.days || []).indexOf(today) >= 0 ? g.days : (g.days || []).concat([today]).slice(-400)
   return saveGame({ lastDay: today, streak, days })
+}
+
+/** 设置性别（登录时选择，运营侧决定奖励） */
+export function setGender(gender) {
+  if (gender !== 'boy' && gender !== 'girl') return getGame()
+  return saveGame({ gender })
+}
+
+export function getGender() {
+  return getGame().gender || ''
 }
 
 /** 解锁卡牌，返回是否新解锁 */
