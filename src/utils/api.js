@@ -143,6 +143,19 @@ export function fetchCheckins() {
     .catch(() => null)
 }
 
+/** 学过的单词（服务端分页，每次默认 10 条） */
+export function fetchWords(offset = 0, limit = 10) {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/words?offset=${offset}&limit=${limit}`,
+    method: 'GET',
+    timeout: 8000,
+    header: authHeader()
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
 /** 记录一次学习活跃（后台活跃度用） */
 export function pingStudy() {
   if (!getSession()) return Promise.resolve(null)

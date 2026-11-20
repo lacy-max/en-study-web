@@ -47,7 +47,11 @@
 
 .wl-scroll {
   flex: 1;
-  padding: 0 24px;
+  min-height: 0;
+  height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 24px 90px;
   box-sizing: border-box;
 }
 
@@ -81,8 +85,11 @@
 .wl-item {
   display: flex;
   align-items: center;
-  padding: 14px 4px;
-  border-bottom: 1px solid #f6f7fb;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.05);
 }
 
 .wl-pic {
@@ -152,4 +159,26 @@
 
 .wl-bottom {
   height: 40px;
+}
+
+.wl-tag {
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 18px;
+  color: #a5aec0;
+  background: #f3f4ff;
+  border-radius: 999px;
+  padding: 4px 14px;
+  white-space: nowrap;
+}
+
+.wl-more {
+  display: block;
+  text-align: center;
+  padding: 18px 0 26px;
+}
+
+.wl-more-t {
+  font-size: 20px;
+  color: #aab2c2;
 }
