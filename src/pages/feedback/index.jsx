@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, Textarea } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { sendFeedback } from '../../utils/api'
 import { backOrHome } from '../../utils/nav'
@@ -39,12 +39,12 @@ export default function Feedback() {
       </View>
 
       <View className='fb-card'>
-        <Textarea
+        <textarea
           className='fb-input'
           placeholder='比如：单词页希望加慢速朗读'
-          maxlength={200}
+          maxLength={200}
           value={text}
-          onInput={e => setText(e.detail.value)}
+          onChange={e => setText(e.target.value)}
         />
         <Text className='fb-count'>{text.length}/200</Text>
       </View>
