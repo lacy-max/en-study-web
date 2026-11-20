@@ -450,12 +450,8 @@ export default function Practice({ fixedMode }) {
     setCrossWrongPick(null)
   }, [crossIdx, chapterId])
 
-  // 自动朗读开关：开了才自动读题，关了必须手动点喇叭
-  useEffect(() => {
-    if (mode !== 'cross' || !crossQ) return
-    if (!settings.autoSpeak) return
-    speak(crossQ.audio, settings.rate)
-  }, [crossIdx, crossQ, mode, settings.autoSpeak])
+  // 交叉练习：进题不自动读（避免和答完那一次叠成两次），答完只读一次
+  // 想听题目就点喇叭图标
 
   const onCrossPick = opt => {
     if (!crossQ) return
