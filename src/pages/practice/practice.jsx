@@ -120,15 +120,12 @@ export default function Practice({ fixedMode }) {
       setCombo(Number(st.combo) || 0)
       comboRef.current = Number(st.combo) || 0
       if (mode === 'dictation') {
+        // 只恢复进度位置；作答状态不恢复，进页面永远是空白输入框
         setDIdx(idx)
-        const cur = words[idx]
-        const r = cur && resultsRef.current[cur.en]
-        if (r === 'ok') {
-          setDInput(cur.en)
-          setDChecked(true)
-        } else if (r === 'bad') {
-          setDChecked(false)
-        }
+        setDInput('')
+        setDChecked(null)
+        setDErr(false)
+        setDVoiceMsg('')
       }
     })
   }, [chapter, chapterId, mode])
