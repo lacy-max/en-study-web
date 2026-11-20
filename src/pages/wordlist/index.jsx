@@ -130,6 +130,11 @@ export default function WordList() {
             <Text className='wl-more-t'>正在加载…</Text>
           </View>
         )}
+        {!loading && hasMore && items.length > 0 && (
+          <View className='wl-more'>
+            <Text className='wl-more-t'>下拉加载更多</Text>
+          </View>
+        )}
         {!loading && !hasMore && items.length > 0 && (
           <View className='wl-more'>
             <Text className='wl-more-t'>已经到底啦 · 共 {total} 个单词</Text>
