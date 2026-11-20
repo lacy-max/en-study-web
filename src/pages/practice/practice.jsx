@@ -438,7 +438,7 @@ export default function Practice({ fixedMode }) {
       done()
     }
     speak(text, settings.rate, once)
-    timer = setTimeout(once, 15000)
+    timer = setTimeout(once, 6000)
   }
 
   const [crossIdx, setCrossIdx] = useState(0)
@@ -465,18 +465,20 @@ export default function Practice({ fixedMode }) {
     if (crossAnswered === '__right') return
     setCrossAnswered(opt.key)
     const answerRight = opt.key === crossQ.word.en
-    // 关掉自动朗读就不出声，只给视觉反馈
-    if (settings.autoSpeak) speak(crossQ.audio, settings.rate)
+    // 一题只读一次：答对时那一次播放结束后再切题，不再重复朗读
+    const wantRead = !!settings.autoSpeak
+    const wantNext = !!settings.autoNext && answerRight
+    if (wantRead) {
+      if (wantNext) speakThen(crossQ.audio, () => goCross(crossIdx + 1))
+      else speak(crossQ.audio, settings.rate)
+    } else if (wantNext) {
+      goCross(crossIdx + 1)
+    }
 
     if (answerRight) {
       setCrossAnswered('__right')
       flash(true)
       addScore(true)
-      if (settings.autoNext) {
-        // 开着朗读就读完再走；关了就立刻下一题
-        if (settings.autoSpeak) speakThen(crossQ.audio, () => goCross(crossIdx + 1))
-        else goCross(crossIdx + 1)
-      }
     } else {
       setCrossWrongPick(opt.key)
       flash(false)
@@ -773,28 +775,38 @@ export default function Practice({ fixedMode }) {
     setFillWrongPick('')
   }, [fillIdx, chapterId, fillPool])
 
-  // 自动朗读开关控制填空页是否自动读整句
+  // 填空题：还没选答案就不自动读（会把答案读出来），答过的题（回看/切回）才补读一次
+  const spokeFillRef = useRef(-1)
   useEffect(() => {
     if (mode !== 'fill' || !fillData) return
     if (!settings.autoSpeak) return
+    if (!fillAnswered) return
+    if (spokeFillRef.current === fillIdx) return
+    spokeFillRef.current = fillIdx
     speak(fillData.word.sentence, settings.rate)
-  }, [fillIdx, mode, settings.autoSpeak])
+  }, [fillIdx, fillAnswered, mode, settings.autoSpeak])
 
   const onFillPick = opt => {
     if (!fillData) return
     if (fillAnswered === '__right') return
     setFillAnswered(opt.key)
-    if (settings.autoSpeak) speak(fillData.word.sentence, settings.rate)
+    const answerRight = opt.key === fillData.word.en
+    const sentence = fillData.word.sentence
+    // 一题只读一次：答完读这一遍，不再重复
+    spokeFillRef.current = fillIdx
+    const wantRead = !!settings.autoSpeak
+    const wantNext = !!settings.autoNext && answerRight
+    if (wantRead) {
+      if (wantNext) speakThen(sentence, () => goFill(fillIdx + 1))
+      else speak(sentence, settings.rate)
+    } else if (wantNext) {
+      goFill(fillIdx + 1)
+    }
 
     if (opt.key === fillData.word.en) {
       setFillAnswered('__right')
       flash(true)
       addScore(true)
-      if (settings.autoNext) {
-        // 开着朗读就整句读完再切；关了就立刻下一题
-        if (settings.autoSpeak) speakThen(fillData.word.sentence, () => goFill(fillIdx + 1))
-        else goFill(fillIdx + 1)
-      }
     } else {
       setFillWrongPick(opt.key)
       flash(false)
