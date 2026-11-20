@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getGame, saveGame } from '../../utils/game'
-import { fetchCheckins } from '../../utils/api'
+import { fetchCheckins, markCheckin } from '../../utils/api'
 import TabBar from '../../components/tabbar'
 import './index.scss'
 
@@ -18,12 +18,24 @@ export default function Checkin() {
   // 进页面先取服务端的打卡记录（昨天在新手机上打的也认得）
   useDidShow(() => {
     setGame(getGame())
+    const localDays = getGame().days || []
     fetchCheckins().then(res => {
-      if (!res || !res.days) return
-      const local = (getGame().days || []).concat(res.days)
-      const days = Array.from(new Set(local))
-      saveGame({ days, streak: res.streak || 0, lastDay: res.today || getGame().lastDay })
+      if (!res || !res.days) {
+        // 没网/没登录：至少用本地记录
+        setGame(getGame())
+        return
+      }
+      const serverDays = res.days || []
+      const merged = Array.from(new Set(localDays.concat(serverDays)))
+      saveGame({
+        days: merged,
+        streak: res.streak || 0,
+        lastDay: res.today || getGame().lastDay
+      })
       setGame(getGame())
+      // 本机有、服务端没有的历史（老版本只存本地）补传上去，换设备不再丢
+      const missing = localDays.filter(d => serverDays.indexOf(d) < 0)
+      if (missing.length) markCheckin(missing)
     })
   })
 
@@ -36,6 +48,9 @@ export default function Checkin() {
       ? raw.concat([today])
       : raw
   const todayDone = days.indexOf(today) >= 0
+
+  // 第一次打卡之前的日期不算「漏打」，留空更不误导
+  const firstDay = days.length ? days.slice().sort()[0] : today
 
   const month = useMemo(() => {
     const d = new Date()
@@ -55,11 +70,12 @@ export default function Checkin() {
           key,
           done: days.indexOf(key) >= 0 || (key === today && game.lastDay === today),
           isToday: key === today,
-          isFuture: key > today
+          isFuture: key > today,
+          before: key < firstDay
         })
     }
     return { title: `${y} 年 ${m + 1} 月`, cells }
-  }, [days, today])
+  }, [days, today, firstDay])
 
   const monthDone = month.cells.filter(c => c && c.done).length
 
@@ -104,7 +120,7 @@ export default function Checkin() {
                 'ck-cell',
                 c && c.done && 'ck-cell-done',
                 c && c.isToday && 'ck-cell-today',
-                c && !c.done && !c.isFuture && 'ck-cell-miss',
+                c && !c.done && !c.isFuture && !c.before && 'ck-cell-miss',
                 c && c.isFuture && 'ck-cell-future'
               ].filter(Boolean).join(' ')}
               key={i}
@@ -113,7 +129,7 @@ export default function Checkin() {
                 <View className='ck-cell-inner'>
                   <Text className='ck-cell-t'>{c.day}</Text>
                   <Text className={`ck-cell-badge ${c.done ? 'ck-cell-badge-on' : ''}`}>
-                    {c.done ? '打卡' : c.isFuture ? '' : '未打'}
+                    {c.done ? '打卡' : c.isFuture || c.before ? '' : '未打'}
                   </Text>
                 </View>
               ) : null}

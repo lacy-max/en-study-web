@@ -465,15 +465,17 @@ export default function Practice({ fixedMode }) {
     if (crossAnswered === '__right') return
     setCrossAnswered(opt.key)
     const answerRight = opt.key === crossQ.word.en
-    speak(crossQ.audio, settings.rate)
+    // 关掉自动朗读就不出声，只给视觉反馈
+    if (settings.autoSpeak) speak(crossQ.audio, settings.rate)
 
     if (answerRight) {
       setCrossAnswered('__right')
       flash(true)
       addScore(true)
       if (settings.autoNext) {
-        // 长句子读完再走，读完前不切题
-        speakThen(crossQ.audio, () => goCross(crossIdx + 1))
+        // 开着朗读就读完再走；关了就立刻下一题
+        if (settings.autoSpeak) speakThen(crossQ.audio, () => goCross(crossIdx + 1))
+        else goCross(crossIdx + 1)
       }
     } else {
       setCrossWrongPick(opt.key)
@@ -782,15 +784,16 @@ export default function Practice({ fixedMode }) {
     if (!fillData) return
     if (fillAnswered === '__right') return
     setFillAnswered(opt.key)
-    speak(fillData.word.sentence, settings.rate)
+    if (settings.autoSpeak) speak(fillData.word.sentence, settings.rate)
 
     if (opt.key === fillData.word.en) {
       setFillAnswered('__right')
       flash(true)
       addScore(true)
       if (settings.autoNext) {
-        // 整句读完再切题，避免长句子被切断
-        speakThen(fillData.word.sentence, () => goFill(fillIdx + 1))
+        // 开着朗读就整句读完再切；关了就立刻下一题
+        if (settings.autoSpeak) speakThen(fillData.word.sentence, () => goFill(fillIdx + 1))
+        else goFill(fillIdx + 1)
       }
     } else {
       setFillWrongPick(opt.key)
@@ -888,7 +891,8 @@ export default function Practice({ fixedMode }) {
       }, left)
     }
 
-    speak(w.en, settings.rate, close)
+    if (settings.autoSpeak) speak(w.en, settings.rate, close)
+    else close()
     // 兜底：音频回调异常时最多展示 8 秒
     if (popTimer.current) clearTimeout(popTimer.current)
     popTimer.current = setTimeout(() => {

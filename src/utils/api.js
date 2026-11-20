@@ -116,12 +116,13 @@ export function fetchMe() {
     .catch(() => ({ ok: true, data: s }))
 }
 
-/** 今天打卡（学完一节调用），返回 {days, streak} */
-export function markCheckin() {
+/** 今天打卡（学完一节调用），可带 days 补录本机历史，返回 {days, streak} */
+export function markCheckin(backfillDays) {
   if (!getSession()) return Promise.resolve(null)
   return Taro.request({
     url: `${API_BASE}/api/checkin`,
     method: 'POST',
+    data: backfillDays && backfillDays.length ? { days: backfillDays } : {},
     timeout: 5000,
     header: authHeader()
   })
