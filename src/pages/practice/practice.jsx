@@ -549,6 +549,8 @@ export default function Practice({ fixedMode }) {
     flash(ok)
     resultsRef.current[dictWord.en] = ok ? 'ok' : 'bad'
     persistState(dIdx)
+    // 写完后读一遍正确的发音（受自动朗读开关控制）
+    if (settings.autoSpeak) speak(dictWord.en, settings.rate)
     if (!ok) {
       setDErr(true)
       buzz()
@@ -775,14 +777,16 @@ export default function Practice({ fixedMode }) {
     setFillWrongPick('')
   }, [fillIdx, chapterId, fillPool])
 
-  // 填空题：还没选答案就不自动读（会把答案读出来），答过的题（回看/切回）才补读一次
-  const spokeFillRef = useRef(-1)
+  // 填空题朗读规则：
+  // 1) 没作答的题不读（读了等于报答案）
+  // 2) 作答的题只读一次；中途把开关重新打开时，如果这题已经答过就补读一次
+  const answeredIdxRef = useRef({ idx: -1, spoken: true })
   useEffect(() => {
     if (mode !== 'fill' || !fillData) return
     if (!settings.autoSpeak) return
-    if (!fillAnswered) return
-    if (spokeFillRef.current === fillIdx) return
-    spokeFillRef.current = fillIdx
+    const a = answeredIdxRef.current
+    if (a.idx !== fillIdx || a.spoken) return
+    answeredIdxRef.current = { idx: fillIdx, spoken: true }
     speak(fillData.word.sentence, settings.rate)
   }, [fillIdx, fillAnswered, mode, settings.autoSpeak])
 
@@ -792,10 +796,10 @@ export default function Practice({ fixedMode }) {
     setFillAnswered(opt.key)
     const answerRight = opt.key === fillData.word.en
     const sentence = fillData.word.sentence
-    // 一题只读一次：答完读这一遍，不再重复
-    spokeFillRef.current = fillIdx
     const wantRead = !!settings.autoSpeak
     const wantNext = !!settings.autoNext && answerRight
+    // 记录这题已作答；读过就标记，没读（开关关着）留给开关打开时补读
+    answeredIdxRef.current = { idx: fillIdx, spoken: wantRead }
     if (wantRead) {
       if (wantNext) speakThen(sentence, () => goFill(fillIdx + 1))
       else speak(sentence, settings.rate)
@@ -872,6 +876,7 @@ export default function Practice({ fixedMode }) {
     if ((getGame().cards || []).length >= 3) addBadge('collector')
   }
   const restart = () => {
+    answeredIdxRef.current = { idx: -1, spoken: true }
     setShowResult(false)
     setEarnedStars(0)
     setNewCard(null)
