@@ -116,6 +116,45 @@ export function fetchMe() {
     .catch(() => ({ ok: true, data: s }))
 }
 
+/** 今天打卡（学完一节调用），返回 {days, streak} */
+export function markCheckin() {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/checkin`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
+/** 打卡记录（服务端，换设备也在） */
+export function fetchCheckins() {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/checkin`,
+    method: 'GET',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
+/** 记录一次学习活跃（后台活跃度用） */
+export function pingStudy() {
+  if (!getSession()) return Promise.resolve(null)
+  return Taro.request({
+    url: `${API_BASE}/api/activity`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader()
+  })
+    .then(res => res.data || null)
+    .catch(() => null)
+}
+
 function authHeader() {
   const s = getSession()
   return s ? { 'X-Token': s.token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }

@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { getGame } from '../../utils/game'
+import { getGame, saveGame } from '../../utils/game'
+import { fetchCheckins } from '../../utils/api'
 import TabBar from '../../components/tabbar'
 import './index.scss'
 
@@ -14,14 +15,26 @@ function todayStr() {
 
 export default function Checkin() {
   const [game, setGame] = useState(getGame())
-  useDidShow(() => setGame(getGame()))
+  // 进页面先取服务端的打卡记录（昨天在新手机上打的也认得）
+  useDidShow(() => {
+    setGame(getGame())
+    fetchCheckins().then(res => {
+      if (!res || !res.days) return
+      const local = (getGame().days || []).concat(res.days)
+      const days = Array.from(new Set(local))
+      saveGame({ days, streak: res.streak || 0, lastDay: res.today || getGame().lastDay })
+      setGame(getGame())
+    })
+  })
 
   const today = todayStr()
   const raw = game.days || []
-  // 兼容老数据：只有 lastDay 没有 days 的账号，把今天补进来
-  const days = raw.indexOf(today) >= 0 || game.lastDay !== today
+  // 兼容老数据：只有 lastDay 没写 days 的账号，补上 lastDay
+  const days = raw.indexOf(today) >= 0
     ? raw
-    : raw.concat([today])
+    : game.lastDay === today
+      ? raw.concat([today])
+      : raw
   const todayDone = days.indexOf(today) >= 0
 
   const month = useMemo(() => {

@@ -23,7 +23,7 @@ import {
   getGame
 } from '../../utils/game'
 import { CARDS, DOLL_CARDS } from '../../data/cards'
-import { awardDollCard } from '../../utils/api'
+import { awardDollCard, markCheckin, pingStudy } from '../../utils/api'
 import PetHi from '../../assets/mascot/hi.png'
 import PetGo from '../../assets/mascot/go.png'
 import PetYay from '../../assets/mascot/yay.png'
@@ -189,6 +189,21 @@ export default function Practice({ fixedMode }) {
   const autoSpeak = text => {
     if (settings.autoSpeak) speak(text, settings.rate)
   }
+
+  // 进练习页即记一次学习活跃
+  useEffect(() => {
+    pingStudy()
+  }, [chapterId])
+
+  // 进页面就后台合成好本章所有音频，点喇叭/自动朗读几乎立刻出声
+  useEffect(() => {
+    const list = []
+    ;(chapter.words || []).forEach(w => {
+      if (w.en) list.push(w.en)
+      if (w.sentence) list.push(w.sentence)
+    })
+    warmTTS(list, settings.rate)
+  }, [chapterId, settings.rate])
 
   /** 答错反馈：震动一下（H5 支持就震，不支持就静默跳过） */
   const buzz = () => {
@@ -437,6 +452,13 @@ export default function Practice({ fixedMode }) {
     setCrossWrong(0)
     setCrossWrongPick(null)
   }, [crossIdx, chapterId])
+
+  // 自动朗读开关：开了才自动读题，关了必须手动点喇叭
+  useEffect(() => {
+    if (mode !== 'cross' || !crossQ) return
+    if (!settings.autoSpeak) return
+    speak(crossQ.audio, settings.rate)
+  }, [crossIdx, crossQ, mode, settings.autoSpeak])
 
   const onCrossPick = opt => {
     if (!crossQ) return
@@ -749,6 +771,13 @@ export default function Practice({ fixedMode }) {
     setFillWrongPick('')
   }, [fillIdx, chapterId, fillPool])
 
+  // 自动朗读开关控制填空页是否自动读整句
+  useEffect(() => {
+    if (mode !== 'fill' || !fillData) return
+    if (!settings.autoSpeak) return
+    speak(fillData.word.sentence, settings.rate)
+  }, [fillIdx, mode, settings.autoSpeak])
+
   const onFillPick = opt => {
     if (!fillData) return
     if (fillAnswered === '__right') return
@@ -803,6 +832,7 @@ export default function Practice({ fixedMode }) {
     addStars(stars)
     setEarnedStars(stars)
     touchToday()
+    markCheckin()
     updateBestCombo(comboRef.current)
 
     addBadge('first_win')
@@ -1001,9 +1031,10 @@ export default function Practice({ fixedMode }) {
               <>
                 <Text className='dict-cn'>{dictWord.cn || '—'}</Text>
                 <View className='dict-tools'>
-                  <View className='ghost-btn' onClick={() => speak(dictWord.en, settings.rate)}>
-                    <Text className='ghost-btn-t'>🔊 听发音</Text>
-                  </View>
+                  <View
+                    className='speak-btn speak-btn-sm'
+                    onClick={() => speak(dictWord.en, settings.rate)}
+                  />
                   <View
                     className={dListening ? 'ghost-btn voice-btn listening' : 'ghost-btn voice-btn'}
                     onClick={toggleVoice}
@@ -1141,8 +1172,15 @@ export default function Practice({ fixedMode }) {
             {crossWrong >= 3 && !crossWrongPick && (
               <Text className='hint'>正确答案：{crossQ.answerText}</Text>
             )}
-            {crossQ.type === 's2e' && crossAnswered && (
+            {crossQ.type === 's2e' && !!crossQ.cnHint && (
               <Text className='cn-hint'>句意：{crossQ.cnHint}</Text>
+            )}
+            {crossQ.type !== 's2e' && (
+              <Text className='cn-hint'>
+                {crossQ.type === 'w2c'
+                  ? '选它的中文意思'
+                  : '选对应的英文单词'}
+              </Text>
             )}
           </View>
 
@@ -1195,8 +1233,11 @@ export default function Practice({ fixedMode }) {
               <Text className='fq-t'>{fillData.after}</Text>
             </View>
             {!!fillData.cn && <Text className='fq-cn'>{fillData.cn}</Text>}
-            <View className='fq-listen' onClick={() => speak(fillData.word.sentence, settings.rate)}>
-              <Text className='fq-listen-t'>🔊 点句子听一遍</Text>
+            <View
+              className='fq-listen'
+              onClick={() => speak(fillData.word.sentence, settings.rate)}
+            >
+              <View className='fq-listen-icon' />
             </View>
           </View>
 
@@ -1223,7 +1264,15 @@ export default function Practice({ fixedMode }) {
           </View>
 
           <View className='btn-row'>
-            {!settings.autoNext && (
+            <View
+              className='speak-btn'
+              onClick={() => speak(fillData.word.sentence, settings.rate)}
+            />
+            {settings.autoNext ? (
+              <View className='next-btn' onClick={() => goFill(fillIdx + 1)}>
+                <Text className='next-btn-t'>→</Text>
+              </View>
+            ) : (
               <View className='nav-group'>
                 <View className='nav-btn' onClick={() => goFill(fillIdx - 1)}>
                   <Text className='nav-t'>←</Text>

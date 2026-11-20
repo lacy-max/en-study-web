@@ -8,6 +8,7 @@ import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
 import { backOrHome, goHome } from '../../utils/nav'
 import { touchToday } from '../../utils/game'
+import { markCheckin, pingStudy } from '../../utils/api'
 import './words.scss'
 import TabBar from '../../components/tabbar'
 
@@ -44,9 +45,11 @@ export default function Words() {
 
   useEffect(() => () => stopSpeak(), [])
 
-  // 开始学单词就算今天打卡
+  // 开始学单词就算今天打卡（同时记到服务端，换设备也认）
   useEffect(() => {
     touchToday()
+    markCheckin()
+    pingStudy()
   }, [])
 
   const go = step => {
