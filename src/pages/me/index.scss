@@ -230,3 +230,23 @@
   color: #ef4444;
   font-weight: 600;
 }
+
+.me-link-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.me-link-badge {
+  min-width: 34px;
+  height: 34px;
+  line-height: 34px;
+  padding: 0 9px;
+  border-radius: 17px;
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 19px;
+  text-align: center;
+  box-sizing: border-box;
+}

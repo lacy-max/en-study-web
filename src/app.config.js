@@ -13,6 +13,7 @@ export default {
     'pages/checkin/index',
     'pages/me/index',
     'pages/feedback/index',
+    'pages/wrong/index',
     'pages/wordlist/index'
   ],
   window: {

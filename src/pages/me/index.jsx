@@ -3,7 +3,7 @@ import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { getSession, setSession } from '../../utils/api'
 import { getGame } from '../../utils/game'
-import { getChapterProgress } from '../../utils/storage'
+import { getChapterProgress, countWrongPending } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import TabBar from '../../components/tabbar'
 import GirlAvatar from '../../assets/mascot/girl-avatar.png'
@@ -12,8 +12,12 @@ import './index.scss'
 export default function Me() {
   const session = getSession() || {}
   const [game, setGame] = useState(getGame())
+  const [wrongCount, setWrongCount] = useState(countWrongPending())
 
-  useDidShow(() => setGame(getGame()))
+  useDidShow(() => {
+    setGame(getGame())
+    setWrongCount(countWrongPending())
+  })
 
   const logout = () => {
     Taro.showModal({
@@ -77,6 +81,13 @@ export default function Me() {
       </View>
 
       <View className='me-links'>
+        <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/wrong/index' })}>
+          <Text className='me-link-t'>📕 错题本</Text>
+          <View className='me-link-right'>
+            {wrongCount ? <Text className='me-link-badge'>{wrongCount}</Text> : null}
+            <Text className='me-link-arrow'>›</Text>
+          </View>
+        </View>
         <View className='me-link' onClick={() => Taro.navigateTo({ url: '/pages/feedback/index' })}>
           <Text className='me-link-t'>💬 意见反馈</Text>
           <Text className='me-link-arrow'>›</Text>

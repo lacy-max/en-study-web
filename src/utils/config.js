@@ -14,9 +14,9 @@ function detectApiBase() {
       const host = window.location.hostname
       const proto = window.location.protocol === 'https:' ? 'https:' : 'http:'
       const port = window.location.port
-      // 本地开发/预览端口才需要手动指到 8000；正式环境（80/443/8000）与页面同源，由 nginx 反代 /api
-      const DEV_PORTS = ['10105', '10086', '10200']
-      if (DEV_PORTS.indexOf(port) >= 0) return `${proto}//${host}:8000`
+      // 正式环境（80/443/8000）与页面同源；其它端口都视为本地预览，后端固定走 8000
+      const isProd = !port || port === '80' || port === '443' || port === '8000'
+      if (!isProd) return `${proto}//${host}:8000`
       return `${proto}//${window.location.host}`
     }
   } catch (e) {}

@@ -1,28 +1,15 @@
-import React, { useEffect, useState } from 'react'
-import { View, Text, Image } from '@tarojs/components'
+import React, { useEffect, useState, useRef } from 'react'
+import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import TabBar from '../../components/tabbar'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters } from '../../utils/api'
 import { getChapterProgress, applyRemote, saveChapterProgress } from '../../utils/storage'
 import { getSession, fetchProgress } from '../../utils/api'
-import { CARDS } from '../../data/cards'
 import { topicIcon } from '../../data/pics'
+import { groupByLevel } from '../../data/levels'
 import DailyHint from '../../components/daily-hint'
 import './index.scss'
-
-import AnimalCat from '../../assets/mascot/hi.png'
-import AnimalBear from '../../assets/mascot/bear.png'
-import AnimalRabbit from '../../assets/mascot/rabbit.png'
-import AnimalDuck from '../../assets/mascot/duck.png'
-
-const ANIMALS = {
-  cat: AnimalCat,
-  bear: AnimalBear,
-  rabbit: AnimalRabbit,
-  duck: AnimalDuck
-}
-const ANIMAL_ORDER = ['cat', 'bear', 'rabbit', 'duck']
 
 export default function Index() {
   const [chapters, setChapters] = useState(fallbackChapters)
@@ -65,12 +52,6 @@ export default function Index() {
 
   useEffect(refresh, [chapters])
   useDidShow(refresh)
-
-  const animalOf = (c, i) => {
-    const card = CARDS[c.id]
-    const key = (card && card.animal) || ANIMAL_ORDER[i % ANIMAL_ORDER.length]
-    return ANIMALS[key] || ANIMALS.cat
-  }
 
   // 是否学过：有得分记录即视为学过
   const MODES = ['study', 'dictation', 'match', 'fill', 'cross']
@@ -120,48 +101,115 @@ export default function Index() {
     Taro.showToast({ title: '先学完上一课哦', icon: 'none', duration: 1500 })
   }
 
+  const groups = groupByLevel(chapters)
+  // 首页按阶梯分页：一页只看一个梯队，L0 第 1 页、L1 第 2 页…
+  const [page, setPage] = useState(0)
+  const pageCount = groups.length
+  const cur = Math.min(page, Math.max(pageCount - 1, 0))
+  const group = groups[cur] || { items: [], color: '#8b5cf6', name: '', age: '' }
+  const go = d => {
+    const n = cur + d
+    if (n < 0 || n > pageCount - 1) return
+    setPage(n)
+    Taro.pageScrollTo({ scrollTop: 0, duration: 200 })
+  }
+  // 左右滑动翻页
+  const touch = useRef(0)
+  const onTouchStart = e => {
+    touch.current = e.touches && e.touches[0] ? e.touches[0].clientX : 0
+  }
+  const onTouchEnd = e => {
+    const x = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0
+    const dx = x - touch.current
+    if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1)
+  }
+
   return (
     <View className='khome'>
       <View className='khome-head'>
         <Text className='khome-title'>🌳 今天学哪一课？</Text>
       </View>
 
-      <View className='khome-grid'>
-        {chapters.map((c, i) => {
-          const done = chapterDone(c.id)
-          const isCurrent = i === currentIdx
-          const unlocked = isUnlocked(i)
-          return (
-            <View
-              className={`kcard ${unlocked ? '' : 'kcard-locked'} ${done ? 'kcard-done' : ''}`}
-              key={c.id}
-              onClick={() => (unlocked ? open(c) : openLocked())}
+      <View className='klevel' key={group.key} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <View className='klevel-head'>
+          <View className='klevel-dot' style={{ background: group.color }} />
+          <Text className='klevel-name'>{group.name}</Text>
+          <Text className='klevel-age'>{group.age}</Text>
+          <View className='klevel-pager'>
+            <Text
+              className={`kp-btn ${cur === 0 ? 'kp-off' : ''}`}
+              onClick={() => go(-1)}
             >
-              <Text className='kcard-no'>{i < 9 ? `0${i + 1}` : i + 1}</Text>
-              <Image className='kcard-animal' src={animalOf(c, i)} mode='aspectFit' />
-              <Text className='kcard-emoji'>{topicIcon(c.title)}</Text>
-              <Text className='kcard-title'>
-                {c.title.replace(/^Unit\s*\d+\s*·\s*/, '')}
-              </Text>
-              {visited(c.id) && isCurrent && <Text className='kcard-star'>⭐</Text>}
-              {done && <Text className='kcard-check'>✓</Text>}
-              {unlocked && !done && (doneCount(c.id) > 0 || visited(c.id)) && (
-                <>
-                  <View className='kcard-prog'>
-                    <View
-                      className='kcard-prog-in'
-                      style={{ width: `${(doneCount(c.id) / MODES.length) * 100}%` }}
-                    />
-                  </View>
-                  <Text className='kcard-prog-t'>
-                    本关进度 {doneCount(c.id)}/{MODES.length}
-                  </Text>
-                </>
-              )}
+              ‹
+            </Text>
+            <Text className='kp-num'>{cur + 1}/{pageCount}</Text>
+            <Text
+              className={`kp-btn ${cur === pageCount - 1 ? 'kp-off' : ''}`}
+              onClick={() => go(1)}
+            >
+              ›
+            </Text>
+          </View>
+        </View>
+        <Text className='klevel-desc'>{group.desc} · 共 {group.items.length} 章</Text>
 
-            </View>
-          )
-        })}
+        <View className='khome-grid'>
+          {group.items.map((c, j) => {
+            const i = chapters.findIndex(x => x.id === c.id)
+            const done = chapterDone(c.id)
+            const isCurrent = i === currentIdx
+            const unlocked = isUnlocked(i)
+            return (
+              <View
+                className={`kcard ${unlocked ? '' : 'kcard-locked'} ${done ? 'kcard-done' : ''}`}
+                key={c.id}
+                onClick={() => (unlocked ? open(c) : openLocked())}
+              >
+                <Text className='kcard-no'>{j < 9 ? `0${j + 1}` : j + 1}</Text>
+                <Text className='kcard-emoji'>{topicIcon(c.title)}</Text>
+                <Text className='kcard-title'>
+                  {c.title.replace(/^Unit\s*\d+\s*·\s*/, '')}
+                </Text>
+                {visited(c.id) && isCurrent && <Text className='kcard-star'>⭐</Text>}
+                {done && <Text className='kcard-check'>✓</Text>}
+                {unlocked && !done && (doneCount(c.id) > 0 || visited(c.id)) && (
+                  <>
+                    <View className='kcard-prog'>
+                      <View
+                        className='kcard-prog-in'
+                        style={{ width: `${(doneCount(c.id) / MODES.length) * 100}%` }}
+                      />
+                    </View>
+                    <Text className='kcard-prog-t'>
+                      本关进度 {doneCount(c.id)}/{MODES.length}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )
+          })}
+        </View>
+
+        <View className='klevel-foot'>
+          <Text className={`kf-btn ${cur === 0 ? 'kf-off' : ''}`} onClick={() => go(-1)}>
+            上一阶段
+          </Text>
+          <View className='kf-dots'>
+            {groups.map((g, k) => (
+              <View
+                key={g.key}
+                className={`kf-dot ${k === cur ? 'kf-dot-on' : ''}`}
+                onClick={() => setPage(k)}
+              />
+            ))}
+          </View>
+          <Text
+            className={`kf-btn ${cur === pageCount - 1 ? 'kf-off' : ''}`}
+            onClick={() => go(1)}
+          >
+            下一阶段
+          </Text>
+        </View>
       </View>
       <Text className='khome-tip'>点卡片开始 · 第 1 天学单词，第 2 天闯关</Text>
       <DailyHint />

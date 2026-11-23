@@ -59,14 +59,48 @@ export function getWrongBook() {
 }
 
 export function addWrong(item) {
-  const list = getWrongBook()
+  const raw = getWrongBook()
   const key = item.en || item.text
-  if (list.some(x => (x.en || x.text) === key)) return
-  list.unshift({ ...item, at: Date.now() })
+  if (!key) return
+  // 又答错同一个：挪到最前面，并重新算作「没复习」
+  const list = raw.filter(x => (x.en || x.text) !== key)
+  list.unshift({ ...item, done: false, at: Date.now() })
   try {
     Taro.setStorageSync(WRONG_KEY, list.slice(0, 100))
   } catch (e) {}
   pushWrong({ en: key, zh: item.zh || '', chapterId: item.chapterId || '' })
+}
+
+/** 这一组复习完了，标记成「已复习」；下次进来先给没复习的 */
+export function markWrongDone(keys) {
+  const set = {}
+  ;(keys || []).forEach(k => {
+    set[k] = true
+  })
+  const list = getWrongBook().map(x => (set[x.en || x.text] ? { ...x, done: true } : x))
+  try {
+    Taro.setStorageSync(WRONG_KEY, list)
+  } catch (e) {}
+}
+
+/** 全部复习完一轮后重新开始：把所有记录重置为「没复习」 */
+export function resetWrongDone() {
+  const list = getWrongBook().map(x => ({ ...x, done: false }))
+  try {
+    Taro.setStorageSync(WRONG_KEY, list)
+  } catch (e) {}
+  return list
+}
+
+export function countWrongPending() {
+  return getWrongBook().filter(x => !x.done).length
+}
+
+export function removeWrong(en) {
+  const list = getWrongBook().filter(x => (x.en || x.text) !== en)
+  try {
+    Taro.setStorageSync(WRONG_KEY, list)
+  } catch (e) {}
 }
 
 export function clearWrongBook() {

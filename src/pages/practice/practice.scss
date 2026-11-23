@@ -741,17 +741,6 @@
   height: 60px;
 }
 
-/* 从卡片后面探头的小动物 */
-.w-pet {
-  position: fixed;
-  right: 4px;
-  bottom: 170px;
-  width: 200px;
-  height: 200px;
-  z-index: 1;
-  pointer-events: none;
-}
-
 /* 点击单词冒出来的动物 */
 .w-pop {
   position: fixed;
@@ -762,11 +751,6 @@
   align-items: center;
   z-index: 60;
   animation: popIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.w-pop-img {
-  width: 280px;
-  height: 280px;
 }
 
 .w-pop-t {

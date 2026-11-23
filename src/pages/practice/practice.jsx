@@ -24,17 +24,8 @@ import {
 } from '../../utils/game'
 import { CARDS, DOLL_CARDS } from '../../data/cards'
 import { awardDollCard, markCheckin, pingStudy } from '../../utils/api'
-import PetHi from '../../assets/mascot/hi.png'
-import PetGo from '../../assets/mascot/go.png'
-import PetYay from '../../assets/mascot/yay.png'
-import PetParty from '../../assets/mascot/party.png'
-import PetBear from '../../assets/mascot/bear.png'
-import PetRabbit from '../../assets/mascot/rabbit.png'
-import PetDuck from '../../assets/mascot/duck.png'
 
-const PETS = [PetYay, PetBear, PetRabbit, PetDuck, PetHi, PetParty, PetGo]
 const PRAISE = ['真棒！', '读得好听～', '记住它啦！', '再跟读一遍～', '这个音很准！']
-import MascotHi from '../../assets/mascot/hi.png'
 import './practice.scss'
 import TabBar from '../../components/tabbar'
 
@@ -887,9 +878,8 @@ export default function Practice({ fixedMode }) {
 
   const onWordTap = w => {
     const startedAt = Date.now()
-    const pet = PETS[rnd(PETS.length)]
     const tip = PRAISE[rnd(PRAISE.length)]
-    setPop({ src: pet, tip })
+    setPop({ tip })
 
     const close = () => {
       // 最短展示 1.2 秒，读得快也不至于一闪就没
@@ -957,11 +947,8 @@ export default function Practice({ fixedMode }) {
           <View className='w-list-tail' />
         </View>
 
-        <Image className='w-pet' src={PetHi} mode='aspectFit' />
-
         {pop && (
           <View className='w-pop'>
-            <Image className='w-pop-img' src={pop.src} mode='aspectFit' />
             <Text className='w-pop-t'>{pop.tip}</Text>
           </View>
         )}

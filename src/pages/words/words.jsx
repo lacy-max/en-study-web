@@ -13,12 +13,17 @@ import './words.scss'
 import TabBar from '../../components/tabbar'
 
 /** 第一关：学单词 —— 把这一课的单词先过一遍，看完才能去第二关闯关 */
+let lastTouchAt = 0
+
 export default function Words() {
   const router = useRouter()
   const chapterId = router.params.chapterId || 'unit01'
   const [list, setList] = useState(fallbackChapters)
   const [idx, setIdx] = useState(0)
   const [showDone, setShowDone] = useState(false)
+  const [openIdx, setOpenIdx] = useState(-1)
+  const [bubbleLeft, setBubbleLeft] = useState(4)
+  const [showCn, setShowCn] = useState(false)
   const [settings] = useState(getSettings())
 
   useEffect(() => {
@@ -31,9 +36,59 @@ export default function Words() {
     }
   }, [])
 
+  // 手指按住才显示，松开即消失；电脑端点击仍可切换
+  const openChunk = (c, i) => {
+    if (!c.cn) return
+    setOpenIdx(i)
+    if (process.env.TARO_ENV === 'h5' && typeof document !== 'undefined') {
+      setTimeout(() => {
+        const el = document.getElementById('ck' + i)
+        const row = document.getElementById('ckrow')
+        if (!el || !row) return
+        const a = el.getBoundingClientRect()
+        const b = row.getBoundingClientRect()
+        const pct = ((a.left - b.left) / b.width) * 100
+        setBubbleLeft(Math.max(0, Math.min(58, pct)))
+      }, 0)
+    }
+  }
+
+  const pressChunk = (c, i) => {
+    lastTouchAt = Date.now()
+    openChunk(c, i)
+  }
+
+  const releaseChunk = () => {
+    lastTouchAt = Date.now()
+    setOpenIdx(-1)
+  }
+
+  const tapChunk = (c, i) => {
+    // 手机端 touchend 已经收起，忽略随之而来的 click
+    if (Date.now() - lastTouchAt < 800) return
+    setOpenIdx(openIdx === i ? -1 : i)
+    if (openIdx !== i) openChunk(c, i)
+  }
+
   const chapter = useMemo(() => findChapter(list, chapterId), [chapterId, list])
   const words = useMemo(() => (chapter.words || []).filter(w => w && w.en), [chapter])
   const cur = words[idx]
+
+  // 每个词按「词 + 当天日期」固定抽一句，同一天不换，隔天换
+  const sentence = useMemo(() => {
+    if (!cur) return null
+    const list = (cur.sentences || []).filter(x => x && x.en)
+    if (list.length) {
+      const d = new Date()
+      const key = `${cur.en}-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+      let h = 0
+      for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 100000
+      const s = list[h % list.length]
+      return { en: s.en, cn: s.cn || '', chunks: s.chunks || [] }
+    }
+    if (cur.sentence) return { en: cur.sentence, cn: cur.sentenceCn || '', chunks: cur.chunks || [] }
+    return null
+  }, [cur])
 
   // 进入这一关就记一笔「来过」，首页据此决定要不要给星星
   useEffect(() => {
@@ -59,6 +114,8 @@ export default function Words() {
       finish()
       return
     }
+    setOpenIdx(-1)
+    setShowCn(false)
     setIdx(next)
   }
 
@@ -86,7 +143,6 @@ export default function Words() {
           <Text className='wd-back-t'>‹ 返回</Text>
         </View>
         <Text className='wd-title'>{chapter.title}</Text>
-        <Text className='wd-sub'>第1天 · 学单词 · 看一遍再去闯关</Text>
         <View className='wd-prog'>
           <View className='wd-prog-in' style={{ width: `${((idx + 1) / words.length) * 100}%` }} />
         </View>
@@ -103,23 +159,66 @@ export default function Words() {
             <Text className='wd-pic-emoji'>{picOf(cur.en)}</Text>
           )}
         </View>
-        <Text className='wd-en'>{cur.en}</Text>
-        <Text className='wd-cn'>{cur.cn}</Text>
-
-        <View className='wd-tools'>
-          <View className='wd-play' onClick={() => speak(cur.en, settings.rate)}>
-            <View className='wd-play-icon' />
-            <Text className='wd-play-t'>听发音</Text>
+        <View className='wd-en-row'>
+          <Text className='wd-en'>{cur.en}</Text>
+          <View
+            className='wd-speak'
+            onClick={() => {
+              speak(cur.en, settings.rate)
+            }}
+          >
+            <View className='wd-speak-icon' />
           </View>
         </View>
+        {cur.ipa ? (
+          <View className='wd-ipa-row'>
+            <View className='wd-ipa-item'>
+              <Text className='wd-ipa-tag'>英</Text>
+              <Text className='wd-ipa'>{cur.ipa}</Text>
+            </View>
+            {cur.ipaUs ? (
+              <View className='wd-ipa-item'>
+                <Text className='wd-ipa-tag wd-ipa-tag-us'>美</Text>
+                <Text className='wd-ipa'>{cur.ipaUs}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+        <Text className='wd-cn'>{cur.cn}</Text>
 
-        {cur.sentence ? (
+        {sentence ? (
           <View className='wd-sentence'>
             <View className='wd-sentence-row'>
-              <View className='wd-sentence-play' onClick={() => speak(cur.sentence, settings.rate)} />
-              <Text className='wd-sentence-en'>{cur.sentence}</Text>
+              <View className='wd-sentence-play' onClick={() => speak(sentence.en, settings.rate)} />
+              <View className='wd-chunks' id='ckrow'>
+                {(sentence.chunks && sentence.chunks.length ? sentence.chunks : [{ en: sentence.en, cn: '' }]).map((c, i) => (
+                  <Text
+                    key={c.en + i}
+                    id={'ck' + i}
+                    className={'wd-chunk' + (openIdx === i && c.cn ? ' wd-chunk-on' : '') + (c.cn ? '' : ' wd-chunk-plain')}
+                    onTouchStart={() => pressChunk(c, i)}
+                    onTouchEnd={releaseChunk}
+                    onTouchCancel={releaseChunk}
+                    onClick={() => tapChunk(c, i)}
+                  >
+                    {c.en}
+                  </Text>
+                ))}
+              </View>
             </View>
-            {cur.sentenceCn ? <Text className='wd-sentence-cn'>{cur.sentenceCn}</Text> : null}
+            {openIdx >= 0 && sentence.chunks && sentence.chunks[openIdx] ? (
+              <View className='wd-bubble' style={{ marginLeft: bubbleLeft + '%' }}>
+                <Text className='wd-bubble-t'>{sentence.chunks[openIdx].cn}</Text>
+              </View>
+            ) : null}
+            {sentence.cn ? (
+              <View className='wd-cn-row'>
+                {showCn ? <Text className='wd-sentence-cn'>{sentence.cn}</Text> : null}
+                <Text className='wd-cn-toggle' onClick={() => setShowCn(!showCn)}>
+                  {showCn ? '收起中文' : '看整句中文'}
+                </Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </View>
