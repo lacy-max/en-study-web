@@ -9,6 +9,7 @@ export default {
     'pages/match/match',
     'pages/fill/fill',
     'pages/cross/cross',
+    'pages/listen/listen',
     'pages/collection/collection',
     'pages/checkin/index',
     'pages/me/index',

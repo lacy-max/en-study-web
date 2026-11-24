@@ -61,7 +61,7 @@ export default function Exercise() {
     }
   }, [chapterId])
 
-  const STEPS = ['study', 'dictation', 'match', 'fill', 'cross']
+  const STEPS = ['study', 'dictation', 'match', 'fill', 'cross', 'listen']
   const doneAll = STEPS.filter(k => modesDone[k]).length
   const studyDone = !!modesDone.study
 
@@ -94,6 +94,13 @@ export default function Exercise() {
         title: '交叉练习',
         desc: '英译中、中译英、例句挖空混着来',
         count: '混合出题'
+      },
+      {
+        key: 'listen',
+        icon: '🎧',
+        title: '听力选择',
+        desc: '听发音，选出听到的单词或句子',
+        count: '单词 + 句子'
       }
     ],
     [chapter]
@@ -119,7 +126,7 @@ export default function Exercise() {
           />
         </View>
         <Text className='ex-prog-t'>
-          本关已完成 {doneAll}/{STEPS.length} 步（学单词 + 4 个练习）
+          本关已完成 {doneAll}/{STEPS.length} 步（学单词 + 5 个练习）
         </Text>
       </View>
 

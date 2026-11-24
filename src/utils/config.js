@@ -14,6 +14,8 @@ function detectApiBase() {
       const host = window.location.hostname
       const proto = window.location.protocol === 'https:' ? 'https:' : 'http:'
       const port = window.location.port
+      // https 预览（录音必须 https）：接口和音频走同源代理，避免混合内容被浏览器拦掉
+      if (proto === 'https:') return window.location.origin
       // 正式环境（80/443/8000）与页面同源；其它端口都视为本地预览，后端固定走 8000
       const isProd = !port || port === '80' || port === '443' || port === '8000'
       if (!isProd) return `${proto}//${host}:8000`

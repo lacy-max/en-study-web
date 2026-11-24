@@ -3,3 +3,4 @@ dist/
 h5-preview/
 .DS_Store
 *.log
+scripts/certs/

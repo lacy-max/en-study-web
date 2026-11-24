@@ -4,6 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import { loadChapters, findChapter, getPracticeStates, savePracticeState } from '../../utils/api'
 import { API_BASE } from '../../utils/config'
+import { recordAndRecognize, warmMic } from '../../utils/voice'
 import { speak, warmTTS, stopSpeak } from '../../utils/tts'
 import { backOrHome } from '../../utils/nav'
 import { playWrong } from '../../utils/sfx'
@@ -351,21 +352,24 @@ export default function Practice({ fixedMode }) {
       if (pageWords.every(x => x.en === w.en || matched.indexOf(x.en) >= 0)) {
         const isLast = matchPage >= totalPages - 1
         setCelebrate(isLast ? '全部完成' : '本页连对')
-        setTimeout(() => {
-          setCelebrate('')
-          if (isLast) {
-            finish()
-          } else {
-            setMatchPage(p => p + 1)
-          }
-        }, 1500)
+        setTimeout(() => setCelebrate(''), 1200)
+        setMatchDone(true)
+        setMatchDoneLast(isLast)
       }
     } else {
       playWrong()
       buzz()
       addScore(false)
       setWrongFlash(w.en)
-      addWrong({ en: w.en, cn: w.cn })
+      addWrong({
+        en: w.en,
+        zh: w.cn,
+        chapterId,
+        type: '连线配对',
+        prompt: '把英文和中文连起来',
+        answer: w.en,
+        mine: ''
+      })
       setTimeout(() => {
         setWrongFlash('')
         setSelEn(-1)
@@ -429,10 +433,79 @@ export default function Practice({ fixedMode }) {
     timer = setTimeout(once, 6000)
   }
 
+  const [matchDone, setMatchDone] = useState(false)
+  const [matchDoneLast, setMatchDoneLast] = useState(false)
+  /** ---------- 听力：听发音选单词 / 选句子 ---------- */
+  const listenQs = useMemo(() => {
+    const words = (chapter.words || []).filter(w => w && w.en)
+    return words.map((w, i) => {
+      const useSent = i % 2 === 1 && !!w.sentence && String(w.sentence).toLowerCase().indexOf(String(w.en).toLowerCase()) >= 0
+      if (useSent) {
+        const others = shuffleArr(words.filter(x => x.en !== w.en && x.sentence)).slice(0, 3)
+        return {
+          type: 'sent',
+          word: w,
+          text: w.sentence,
+          options: shuffleArr([w].concat(others)).map(o => ({
+            key: o.en,
+            label: o.sentence
+          }))
+        }
+      }
+      const distract = shuffleArr(words.filter(x => x.en !== w.en)).slice(0, 3)
+      return {
+        type: 'word',
+        word: w,
+        text: w.en,
+        options: shuffleArr([w].concat(distract)).map(o => ({ key: o.en, label: o.en }))
+      }
+    })
+  }, [chapter])
+
+  const [listenIdx, setListenIdx] = useState(0)
+  const [listenAnswered, setListenAnswered] = useState('')
+  const [listenWrongPick, setListenWrongPick] = useState('')
+  const [listenBank, setListenBank] = useState([])
+  const [listenChosen, setListenChosen] = useState([])
+  const [listenChecked, setListenChecked] = useState('')
+  const [listenPlaying, setListenPlaying] = useState(false)
+  const listenQ = listenQs[listenIdx] || null
+
+  const normSent = v =>
+    String(v || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9' ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  // 换题时重排词块（句子题用词库拼句，单词题仍四选一）
+  useEffect(() => {
+    if (!listenQ) return
+    setListenChecked('')
+    setListenChosen([])
+    setListenWrongPick('')
+    setListenAnswered('')
+    setListenPlaying(false)
+    if (listenQ.type === 'sent') {
+      const pool = normSent(listenQ.word.sentence).split(' ').filter(Boolean)
+      const extra = (chapter.words || [])
+        .filter(w => w && w.en && w.en !== listenQ.word.en)
+        .slice(0, 3)
+        .map(w => normSent(w.en).split(' ')[0])
+        .filter(Boolean)
+      const bank = shuffleArr(pool.concat(extra.slice(0, 2))).map((t, i) => ({ id: i, t }))
+      setListenBank(bank)
+    } else {
+      setListenBank([])
+    }
+  }, [listenIdx, chapterId])
+
   const [crossIdx, setCrossIdx] = useState(0)
   const [crossWrong, setCrossWrong] = useState(0)
   const [crossAnswered, setCrossAnswered] = useState(null)
   const [crossWrongPick, setCrossWrongPick] = useState(null)
+  const [crossListening, setCrossListening] = useState(false)
+  const [crossVoiceMsg, setCrossVoiceMsg] = useState('')
   const crossQ = crossQs[crossIdx] || null
 
   useEffect(() => {
@@ -444,6 +517,33 @@ export default function Practice({ fixedMode }) {
   // 交叉练习：进题不自动读（避免和答完那一次叠成两次），答完只读一次
   // 想听题目就点喇叭图标
 
+  /** 交叉练习「英→中」题：直接读英文单词，读对就过 */
+  const crossVoice = async () => {
+    if (!crossQ || crossListening || crossAnswered === '__right') return
+    setCrossListening(true)
+    setCrossVoiceMsg('')
+    try {
+      const r = await recordAndRecognize(crossQ.word.en, 3000)
+      const heard = (r.text || '').replace(/[.,!?]/g, '').trim()
+      const score = r.score || 0
+      if (!heard && !r.match) {
+        setCrossVoiceMsg('没听清，再读一遍')
+      } else if (r.match || score >= 0.9) {
+        setCrossAnswered('__right')
+        flash(true)
+        addScore(true)
+        setCrossWrongPick(null)
+      } else if (score >= 0.75) {
+        setCrossVoiceMsg('有点像，我听到的是“' + heard + '”，再读一遍')
+      } else {
+        setCrossVoiceMsg('我听到的是“' + heard + '”，再读一遍')
+      }
+    } catch (e) {
+      setCrossVoiceMsg((e && e.message) || '再试一次')
+    }
+    setCrossListening(false)
+  }
+
   const onCrossPick = opt => {
     if (!crossQ) return
     if (crossAnswered === '__right') return
@@ -451,7 +551,7 @@ export default function Practice({ fixedMode }) {
     const answerRight = opt.key === crossQ.word.en
     // 一题只读一次：答对时那一次播放结束后再切题，不再重复朗读
     const wantRead = !!settings.autoSpeak
-    const wantNext = !!settings.autoNext && answerRight
+    const wantNext = false
     if (wantRead) {
       if (wantNext) speakThen(crossQ.audio, () => goCross(crossIdx + 1))
       else speak(crossQ.audio, settings.rate)
@@ -469,9 +569,105 @@ export default function Practice({ fixedMode }) {
       playWrong()
       buzz()
       addScore(false)
-      addWrong({ en: crossQ.word.en, cn: crossQ.word.cn })
+      addWrong({
+        en: crossQ.word.en,
+        zh: crossQ.word.cn,
+        chapterId,
+        type:
+          crossQ.type === 's2e'
+            ? '例句挖空'
+            : crossQ.type === 'c2w'
+            ? '看中文选英文'
+            : '看英文选中文',
+        prompt:
+          crossQ.type === 's2e'
+            ? (crossQ.before || '') + '____' + (crossQ.after || '')
+            : crossQ.type === 'c2w'
+            ? crossQ.word.cn
+            : crossQ.word.en,
+        answer:
+          crossQ.type === 's2e'
+            ? crossQ.answerText || crossQ.word.en
+            : crossQ.type === 'c2w'
+            ? crossQ.word.en
+            : crossQ.word.cn,
+        mine: opt.label
+      })
       setCrossWrong(n => n + 1)
     }
+  }
+
+  const playListen = (text, rate) => {
+    if (!text) return
+    setListenPlaying(true)
+    let done = false
+    const stop = () => {
+      if (done) return
+      done = true
+      setListenPlaying(false)
+    }
+    speak(text, rate, stop)
+    setTimeout(stop, 1200 + String(text).length * 320)
+  }
+
+  const onBankTap = item => {
+    if (!listenQ || listenChecked === 'ok') return
+    setListenChosen(c => c.concat([item.id]))
+  }
+
+  const onChosenTap = pos => {
+    if (listenChecked === 'ok') return
+    setListenChosen(c => c.filter((_, i) => i !== pos))
+  }
+
+  const checkListenSent = () => {
+    if (!listenQ || listenChosen.length === 0) return
+    const ans = listenChosen
+      .map(id => (listenBank.find(b => b.id === id) || {}).t || '')
+      .join(' ')
+    const ok = normSent(ans) === normSent(listenQ.word.sentence)
+    setListenChecked(ok ? 'ok' : 'bad')
+    if (ok) {
+      setListenAnswered('__right')
+      flash(true)
+      addScore(true)
+    } else {
+      flash(false)
+      playWrong()
+      buzz()
+      addScore(false)
+      addWrong({ en: listenQ.word.en, cn: listenQ.word.cn, chapterId })
+    }
+  }
+
+  const onListenPick = opt => {
+    if (!listenQ || listenAnswered === '__right') return
+    if (opt.key === listenQ.word.en) {
+      setListenAnswered('__right')
+      setListenWrongPick('')
+      flash(true)
+      addScore(true)
+    } else {
+      setListenWrongPick(opt.key)
+      setListenAnswered(opt.key)
+      flash(false)
+      playWrong()
+      buzz()
+      addScore(false)
+      addWrong({ en: listenQ.word.en, cn: listenQ.word.cn, chapterId })
+    }
+  }
+
+  const goListen = idx => {
+    if (idx < 0) return
+    stopSpeak()
+    if (idx >= listenQs.length) {
+      finish()
+      return
+    }
+    setListenIdx(idx)
+    setListenAnswered('')
+    setListenWrongPick('')
   }
 
   const goCross = idx => {
@@ -482,6 +678,9 @@ export default function Practice({ fixedMode }) {
       return
     }
     setCrossIdx(idx)
+    setCrossListening(false)
+    setCrossVoiceMsg('')
+    setCrossWrongPick(null)
   }
 
   /** ---------- 模式三：句子填空（整句挖空 + 中文，选项为图+英文+中文卡片） ---------- */
@@ -511,11 +710,12 @@ export default function Practice({ fixedMode }) {
   const [dChecked, setDChecked] = useState(null)
   const [dListening, setDListening] = useState(false)
   const [dVoiceMsg, setDVoiceMsg] = useState('')
-  const recRef = useRef(null)
-  const recorderRef = useRef(null)
-  const voiceTimer = useRef(null)
-  const voicedRef = useRef(false)
   const dictWord = dictWords[dIdx] || { en: '', cn: '' }
+
+  // 进听写页先把麦克风拿到手，点语音输入时立刻开录
+  useEffect(() => {
+    if (mode === 'dictation') warmMic()
+  }, [mode])
 
   // 判题：忽略大小写、首尾空格以及标点
   const normalizeAnswer = v =>
@@ -539,187 +739,39 @@ export default function Practice({ fixedMode }) {
       setDErr(true)
       buzz()
       setTimeout(() => setDErr(false), 800)
-      addWrong({ en: dictWord.en, zh: dictWord.cn, chapterId })
+      addWrong({
+        en: dictWord.en,
+        zh: dictWord.cn,
+        chapterId,
+        type: '听写',
+        prompt: '看中文写单词：' + (dictWord.cn || ''),
+        answer: dictWord.en,
+        mine: value
+      })
     }
   }
 
   const dictSubmit = () => dictCheck(dInput)
 
-  /** 语音输入：用浏览器/系统的语音识别，小朋友不用打字 */
-  const getRecognition = () => {
-    try {
-      const RA = window.SpeechRecognition || window.webkitSpeechRecognition
-      return RA ? new RA() : null
-    } catch (e) {
-      return null
-    }
-  }
-
-  const stopVoice = () => {
-    try {
-      recRef.current && recRef.current.stop()
-    } catch (e) {}
-    try {
-      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
-        recorderRef.current.stop()
-      }
-    } catch (e) {}
-    setDListening(false)
-  }
-
-  /** 浏览器没有语音识别接口时（例如 iPhone Safari）走「录音上传 + 服务端识别」 */
-  const hasRecorder = () => {
-    try {
-      return (
-        typeof navigator !== 'undefined' &&
-        navigator.mediaDevices &&
-        typeof navigator.mediaDevices.getUserMedia === 'function' &&
-        typeof MediaRecorder !== 'undefined'
-      )
-    } catch (e) {
-      return false
-    }
-  }
-
-  const uploadVoice = async blob => {
-    Taro.showLoading({ title: '识别中…', mask: true })
-    setDVoiceMsg('识别中…')
-    try {
-      const expect = dictWord.en || ''
-      const url = `${API_BASE}/api/asr?expect=${encodeURIComponent(expect)}`
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': blob.type || 'audio/webm' },
-        body: blob
-      })
-      Taro.hideLoading()
-      if (!res.ok) {
-        setDVoiceMsg('识别服务出错（' + res.status + '），请再试一次')
-        return
-      }
-      const data = await res.json()
-      const heard = (data && data.text ? data.text : '').trim()
-      const match = data && data.match ? data.match : ''
-      if (!heard && !match) {
-        setDVoiceMsg('没听清，再说一次吧')
-        return
-      }
-      setDVoiceMsg('')
-      // 说得含糊但服务器判定对上了，直接用正确词，避免显示乱码
-      const finalText = match || heard
-      setDInput(finalText)
-      dictCheck(finalText)
-    } catch (e) {
-      Taro.hideLoading()
-      setDVoiceMsg('连不上识别服务：' + (e && e.message ? e.message : '网络错误'))
-    }
-  }
-
-  const startRecord = async () => {
+  /** 语音输入：和单词页同一套（录音上传 + 后端识别），识别结果直接填进输入框 */
+  const toggleVoice = async () => {
+    if (dListening) return
     setDVoiceMsg('')
-    if (voiceTimer.current) clearTimeout(voiceTimer.current)
+    setDListening(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mime = MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-        ? 'audio/mp4'
-        : ''
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
-      const chunks = []
-      voicedRef.current = false
-      rec.ondataavailable = e => {
-        if (e.data && e.data.size > 0) {
-          chunks.push(e.data)
-          voicedRef.current = true
-        }
-      }
-      rec.onstop = () => {
-        if (voiceTimer.current) clearTimeout(voiceTimer.current)
-        try {
-          stream.getTracks().forEach(t => t.stop())
-        } catch (e) {}
-        setDListening(false)
-        if (!chunks.length) {
-          setDVoiceMsg('没录到声音，请靠近麦克风再说一次')
-          return
-        }
-        const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' })
-        uploadVoice(blob)
-      }
-      recorderRef.current = rec
-      rec.start(200) // 期间分片，避免停止时一次拿到空数据
-      setDListening(true)
-      setDVoiceMsg('正在录，说一句英文…')
-      // 4 秒自动结束，小朋友不用点第二次
-      voiceTimer.current = setTimeout(() => {
-        try {
-          if (rec.state !== 'inactive') rec.stop()
-        } catch (e) {}
-      }, 4000)
-    } catch (e) {
-      setDListening(false)
-      const msg =
-        e && e.name === 'NotAllowedError'
-          ? '麦克风没开权限，允许后再试'
-          : '麦克风打不开：' + (e && e.name ? e.name : '未知错误')
-      setDVoiceMsg(msg)
-      Taro.showToast({ title: msg, icon: 'none' })
-    }
-  }
-
-  const toggleVoice = () => {
-    if (dListening) {
-      stopVoice()
-      return
-    }
-    // 优先走「自己录音 → 服务端识别」：更稳定，各家浏览器结果一致
-    if (hasRecorder()) {
-      startRecord()
-      return
-    }
-    const rec = getRecognition()
-    if (!rec) {
-      const msg = '这台设备的浏览器不支持录音（需 https 打开）'
-      setDVoiceMsg(msg)
-      Taro.showToast({ title: msg, icon: 'none' })
-      return
-    }
-    rec.lang = 'en-US'
-    rec.interimResults = true
-    rec.continuous = false
-    rec.maxAlternatives = 1
-
-    let heard = ''
-    rec.onresult = e => {
-      let txt = ''
-      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript
-      heard = txt.trim()
-      setDInput(heard)
-    }
-    rec.onerror = ev => {
-      setDListening(false)
-      const title =
-        ev && ev.error === 'not-allowed'
-          ? '麦克风没开权限，允许后再试'
-          : '没听清，再说一次吧'
-      Taro.showToast({ title, icon: 'none' })
-    }
-    rec.onend = () => {
-      setDListening(false)
-      if (heard) {
+      const r = await recordAndRecognize(dictWord.en || '', 3000)
+      const heard = (r.text || '').replace(/[.,!?]/g, '').trim()
+      if (!heard) {
+        setDVoiceMsg('没听清，再读一遍，或者直接打字')
+      } else {
         setDInput(heard)
-        dictCheck(heard)
+        setDChecked(null)
+        setDVoiceMsg('')
       }
-    }
-    recRef.current = rec
-    try {
-      rec.start()
-      setDListening(true)
     } catch (e) {
-      setDListening(false)
-      Taro.showToast({ title: '语音输入启动失败', icon: 'none' })
+      setDVoiceMsg((e && e.message) || '再试一次')
     }
+    setDListening(false)
   }
 
   const dictNext = () => {
@@ -781,7 +833,7 @@ export default function Practice({ fixedMode }) {
     const answerRight = opt.key === fillData.word.en
     const sentence = fillData.word.sentence
     const wantRead = !!settings.autoSpeak
-    const wantNext = !!settings.autoNext && answerRight
+    const wantNext = false
     // 记录这题已作答；读过就标记，没读（开关关着）留给开关打开时补读
     answeredIdxRef.current = { idx: fillIdx, spoken: wantRead }
     if (wantRead) {
@@ -801,7 +853,16 @@ export default function Practice({ fixedMode }) {
       playWrong()
       buzz()
       addScore(false)
-      addWrong({ text: fillData.word.sentence })
+      addWrong({
+        en: fillData.word.en,
+        zh: fillData.word.cn,
+        chapterId,
+        type: '句子填空',
+        prompt: (fillData.before || '') + '____' + (fillData.after || ''),
+        answer: fillData.answer,
+        mine: (fillOptions.find(o => o.key === opt.key) || {}).label || opt.key,
+        options: fillOptions.map(o => ({ key: o.key, label: o.en, cn: o.cn || '' }))
+      })
     }
   }
 
@@ -977,6 +1038,8 @@ export default function Practice({ fixedMode }) {
       ? `${Math.min(crossIdx + 1, crossQs.length)}/${crossQs.length}`
       : mode === 'dictation'
       ? `${Math.min(dIdx + 1, dictWords.length)}/${dictWords.length}`
+      : mode === 'listen'
+      ? `${Math.min(listenIdx + 1, listenQs.length)}/${listenQs.length}`
       : `${Math.min(fillIdx + 1, fillPool.length)}/${fillPool.length}`
 
   return (
@@ -1008,6 +1071,7 @@ export default function Practice({ fixedMode }) {
           {[
             { k: 'match', t: '单词连线' },
             { k: 'cross', t: '交叉练习' },
+            { k: 'listen', t: '听力' },
             { k: 'fill', t: '句子填空' },
             { k: 'dictation', t: '读与写' }
           ].map(tab => (
@@ -1037,12 +1101,18 @@ export default function Practice({ fixedMode }) {
                     onClick={() => speak(dictWord.en, settings.rate)}
                   />
                   <View
-                    className={dListening ? 'ghost-btn voice-btn listening' : 'ghost-btn voice-btn'}
+                    className={dListening ? 'dict-mic dict-mic-on' : 'dict-mic'}
                     onClick={toggleVoice}
                   >
-                    <Text className='ghost-btn-t'>
-                      {dListening ? '🎙️ 正在录，点我结束' : '🎤 语音输入'}
-                    </Text>
+                    {dListening ? (
+                      <View className='dict-mic-dots'>
+                        <View className='dict-mic-dot dict-mic-dot-1' />
+                        <View className='dict-mic-dot dict-mic-dot-2' />
+                        <View className='dict-mic-dot dict-mic-dot-3' />
+                      </View>
+                    ) : (
+                      <View className='dict-mic-icon' />
+                    )}
                   </View>
                 </View>
                 {dVoiceMsg ? <Text className='voice-msg'>{dVoiceMsg}</Text> : null}
@@ -1146,6 +1216,19 @@ export default function Practice({ fixedMode }) {
           </View>
           </View>
 
+          {matchDone && (
+            <View
+              className='match-next-btn'
+              onClick={() => {
+                setMatchDone(false)
+                setCelebrate('')
+                if (matchDoneLast) finish()
+                else setMatchPage(p => p + 1)
+              }}
+            >
+              <Text className='match-next-t'>{matchDoneLast ? '完成' : '下一页'}</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -1163,7 +1246,9 @@ export default function Practice({ fixedMode }) {
               </View>
             ) : (
               <View className='xq'>
-                <Text className='xq-word'>{crossQ.question}</Text>
+                <Text className={'xq-word' + (crossAnswered === '__right' ? ' xq-word-on' : '')}>
+                  {crossQ.question}
+                </Text>
               </View>
             )}
 
@@ -1176,15 +1261,30 @@ export default function Practice({ fixedMode }) {
             {crossQ.type === 's2e' && !!crossQ.cnHint && (
               <Text className='cn-hint'>句意：{crossQ.cnHint}</Text>
             )}
-            {crossQ.type !== 's2e' && (
-              <Text className='cn-hint'>
-                {crossQ.type === 'w2c'
-                  ? '选它的中文意思'
-                  : '选对应的英文单词'}
-              </Text>
+            {crossQ.type === 'w2e' && (
+              <Text className='cn-hint'>选对应的英文单词</Text>
             )}
           </View>
 
+          {crossQ.type === 'w2c' ? (
+            <View className='xq-voice'>
+              <View
+                className={crossListening ? 'xq-mic xq-mic-on' : 'xq-mic'}
+                onClick={crossVoice}
+              >
+                {crossListening ? (
+                  <View className='dict-mic-dots'>
+                    <View className='dict-mic-dot dict-mic-dot-1' />
+                    <View className='dict-mic-dot dict-mic-dot-2' />
+                    <View className='dict-mic-dot dict-mic-dot-3' />
+                  </View>
+                ) : (
+                  <View className='dict-mic-icon' />
+                )}
+              </View>
+              {crossVoiceMsg ? <Text className='voice-msg'>{crossVoiceMsg}</Text> : null}
+            </View>
+          ) : (
           <View className='options'>
             {crossQ.options.map(opt => (
               <View
@@ -1201,24 +1301,153 @@ export default function Practice({ fixedMode }) {
             ))}
           </View>
 
+          )}
+
           <View className='btn-row'>
             <View className='speak-btn' onClick={() => speak(crossQ.audio, settings.rate)} />
-            {settings.autoNext && (
-              <View className='next-btn' onClick={() => goCross(crossIdx + 1)}>
-                <Text className='next-btn-t'>→</Text>
-              </View>
-            )}
-            {!settings.autoNext && (
-              <View className='nav-group'>
-                <View className='nav-btn' onClick={() => goCross(crossIdx - 1)}>
-                  <Text className='nav-t'>←</Text>
-                </View>
-                <View className='nav-btn' onClick={() => goCross(crossIdx + 1)}>
-                  <Text className='nav-t'>→</Text>
-                </View>
-              </View>
-            )}
+            <View
+              className={'next-btn' + (crossAnswered === '__right' ? '' : ' next-btn-off')}
+              onClick={() => {
+                if (crossAnswered !== '__right') {
+                  Taro.showToast({ title: '先答对这一题', icon: 'none' })
+                  return
+                }
+                goCross(crossIdx + 1)
+              }}
+            >
+              <Text className='next-btn-t'>→</Text>
+            </View>
           </View>
+        </View>
+      )}
+
+      {/* ===== 听力选择 ===== */}
+      {mode === 'listen' && listenQ && (
+        <View className='panel'>
+          {listenQ.type === 'sent' ? (
+            <>
+              <Text className='ls-q'>你听到了什么？</Text>
+              <View className='ls-bar'>
+                <View
+                  className={'ls-bar-play' + (listenPlaying ? ' ls-bar-play-on' : '')}
+                  onClick={() => playListen(listenQ.text, settings.rate)}
+                >
+                  <View className='ls-bar-icon' />
+                </View>
+                <View className={'ls-wave' + (listenPlaying ? ' ls-wave-on' : '')}>
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => (
+                    <View key={i} className={'ls-wave-bar ls-wave-' + i} />
+                  ))}
+                </View>
+                <Text className='ls-slow' onClick={() => playListen(listenQ.text, 0.55)}>
+                  慢速
+                </Text>
+              </View>
+
+              <View className='ls-lines'>
+                {[0, 1].map(row => (
+                  <View key={row} className='ls-line'>
+                    {listenChosen
+                      .filter((_, i) => Math.floor(i / 5) === row)
+                      .map((id, i) => {
+                        const pos = row * 5 + i
+                        const item = listenBank.find(b => b.id === id)
+                        return (
+                          <View key={pos} className='ls-token' onClick={() => onChosenTap(pos)}>
+                            <Text className='ls-token-t'>{item ? item.t : ''}</Text>
+                          </View>
+                        )
+                      })}
+                  </View>
+                ))}
+              </View>
+
+              <View className='ls-bank'>
+                {listenBank
+                  .filter(b => listenChosen.indexOf(b.id) < 0)
+                  .map(b => (
+                    <View key={b.id} className='ls-chip' onClick={() => onBankTap(b)}>
+                      <Text className='ls-chip-t'>{b.t}</Text>
+                    </View>
+                  ))}
+              </View>
+
+              {listenChecked === 'ok' ? (
+                <Text className='ls-cn'>{listenQ.word.sentenceCn || ''}</Text>
+              ) : null}
+              {listenChecked === 'bad' ? (
+                <Text className='wrong-tip'>正确答案：{listenQ.word.sentence}</Text>
+              ) : null}
+
+              <View className='ls-actions'>
+                <View className='ls-actions-sp' />
+                <View
+                  className={'ls-check' + (listenChosen.length ? '' : ' ls-check-off')}
+                  onClick={() => {
+                    if (!listenChosen.length) return
+                    if (listenChecked === 'ok') {
+                      goListen(listenIdx + 1)
+                      return
+                    }
+                    checkListenSent()
+                  }}
+                >
+                  <Text className='ls-check-t'>
+                    {listenChecked === 'ok' ? '下一个' : '检查'}
+                  </Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View className='ls-card'>
+                <View className='ls-play' onClick={() => speak(listenQ.text, settings.rate)}>
+                  <View className='ls-play-icon' />
+                </View>
+              </View>
+
+              <View className='ls-options'>
+                {listenQ.options.map(opt => (
+                  <View
+                    key={opt.key}
+                    className={`ls-opt ${
+                      listenAnswered === '__right' && opt.key === listenQ.word.en
+                        ? 'ls-opt-right'
+                        : ''
+                    } ${listenWrongPick === opt.key ? 'ls-opt-wrong' : ''} ${
+                      listenWrongPick && opt.key === listenQ.word.en ? 'ls-opt-hint' : ''
+                    }`}
+                    onClick={() => onListenPick(opt)}
+                  >
+                    <Text className='ls-opt-t'>{opt.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {listenWrongPick ? (
+                <Text className='wrong-tip'>正确答案：{listenQ.word.en}</Text>
+              ) : null}
+              {listenAnswered === '__right' ? (
+                <Text className='ls-cn'>{listenQ.word.cn || ''}</Text>
+              ) : null}
+
+              <View className='btn-row listen-btn-row'>
+                <View className='speak-btn' onClick={() => speak(listenQ.text, settings.rate)} />
+                <View
+                  className={'next-btn' + (listenAnswered === '__right' ? '' : ' next-btn-off')}
+                  onClick={() => {
+                    if (listenAnswered !== '__right') {
+                      Taro.showToast({ title: '先答对这一题', icon: 'none' })
+                      return
+                    }
+                    goListen(listenIdx + 1)
+                  }}
+                >
+                  <Text className='next-btn-t'>→</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       )}
 
@@ -1269,20 +1498,18 @@ export default function Practice({ fixedMode }) {
               className='speak-btn'
               onClick={() => speak(fillData.word.sentence, settings.rate)}
             />
-            {settings.autoNext ? (
-              <View className='next-btn' onClick={() => goFill(fillIdx + 1)}>
-                <Text className='next-btn-t'>→</Text>
-              </View>
-            ) : (
-              <View className='nav-group'>
-                <View className='nav-btn' onClick={() => goFill(fillIdx - 1)}>
-                  <Text className='nav-t'>←</Text>
-                </View>
-                <View className='nav-btn' onClick={() => goFill(fillIdx + 1)}>
-                  <Text className='nav-t'>→</Text>
-                </View>
-              </View>
-            )}
+            <View
+              className={'next-btn' + (fillAnswered === '__right' ? '' : ' next-btn-off')}
+              onClick={() => {
+                if (fillAnswered !== '__right') {
+                  Taro.showToast({ title: '先答对这一题', icon: 'none' })
+                  return
+                }
+                goFill(fillIdx + 1)
+              }}
+            >
+              <Text className='next-btn-t'>→</Text>
+            </View>
           </View>
         </View>
       )}

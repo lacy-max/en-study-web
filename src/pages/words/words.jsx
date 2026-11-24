@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, Image } from '@tarojs/components'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { View, Text, Image, Input } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { loadChapters, findChapter } from '../../utils/api'
 import { chapters as fallbackChapters } from '../../data/chapters'
@@ -8,6 +8,7 @@ import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
 import { backOrHome, goHome } from '../../utils/nav'
 import { touchToday } from '../../utils/game'
+import { recordAndRecognize, similarity, warmMic } from '../../utils/voice'
 import { markCheckin, pingStudy } from '../../utils/api'
 import './words.scss'
 import TabBar from '../../components/tabbar'
@@ -25,6 +26,20 @@ export default function Words() {
   const [bubbleLeft, setBubbleLeft] = useState(4)
   const [showCn, setShowCn] = useState(false)
   const [settings] = useState(getSettings())
+  const [voiceState, setVoiceState] = useState('idle')
+  const [voiceLevel, setVoiceLevel] = useState('')
+  const [voiceMsg, setVoiceMsg] = useState('')
+  const [voiceMode, setVoiceMode] = useState('idle')
+  const [voiceDebug, setVoiceDebug] = useState('')
+  const [myAudioUrl, setMyAudioUrl] = useState('')
+  const myAudios = useRef({})
+  const audioEl = useRef(null)
+  const [typed, setTyped] = useState('')
+
+  // 进页面先拿到麦克风，点跟读时立刻开录，避免首字（b/p 这类）被吃掉
+  useEffect(() => {
+    warmMic()
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -107,7 +122,91 @@ export default function Words() {
     pingStudy()
   }, [])
 
+  // 跟读：录一小段，交给后端识别后和目标词比对
+  // 判定结果：对的自动下一个，接近/不对就提示
+  const judge = (heard, score, match, byType) => {
+    const said = byType ? '你写的是' : '我听到的是'
+    if (match || score >= 0.9) {
+      setVoiceLevel('ok')
+      setVoiceMsg(`太棒了！“${cur.en}”读得很准，点“下一个”继续`)
+      return true
+    }
+    if (score >= 0.75) {
+      setVoiceLevel('near')
+      setVoiceMsg(`有点像，${said}“${heard}”，再来一遍`)
+      speak(cur.en, settings.rate)
+      return false
+    }
+    setVoiceLevel('miss')
+    setVoiceMsg(`${said}“${heard}”，还不对哦，跟着再读一遍`)
+    try {
+      Taro.vibrateShort({ type: 'light' })
+    } catch (e) {}
+    speak(cur.en, settings.rate)
+    return false
+  }
+
+  const startVoice = async () => {
+    if (voiceState !== 'idle') return
+    setVoiceLevel('')
+    setVoiceMsg('')
+    stopSpeak()
+    setVoiceState('listen')
+    try {
+      const r = await recordAndRecognize(cur.en, 4000)
+      const heard = (r.text || '').trim()
+      const kb = r.bytes ? Math.round((r.bytes / 1024) * 10) / 10 : 0
+      setVoiceDebug(`录音 ${kb}KB · ${r.engine || '?'} · 相似度 ${Number(r.score || 0).toFixed(2)}`)
+      if (r.blob) {
+        const old = myAudios.current[cur.en]
+        if (old) URL.revokeObjectURL(old)
+        const url = URL.createObjectURL(r.blob)
+        myAudios.current[cur.en] = url
+        setMyAudioUrl(url)
+      }
+      if (!heard && !r.match) {
+        setVoiceLevel('miss')
+        setVoiceMsg('没听清，可以打字告诉我')
+        setVoiceMode('type')
+      } else {
+        judge(heard, r.score || 0, r.match)
+      }
+    } catch (e) {
+      setVoiceLevel('miss')
+      setVoiceMsg(e && e.message ? e.message : '再试一次')
+      setVoiceMode('type')
+    }
+    setVoiceState('idle')
+  }
+
+  // 打字提交：和语音同一套分档
+  const submitTyped = () => {
+    const v = (typed || '').trim()
+    if (!v) return
+    const score = similarity(v, cur.en)
+    if (!judge(v, score, score >= 0.9 ? cur.en : '', true)) {
+      setVoiceMode('type')
+    } else {
+      setTyped('')
+      setVoiceMode('idle')
+    }
+  }
+
+  const playMine = () => {
+    if (!myAudioUrl) return
+    try {
+      if (audioEl.current) audioEl.current.pause()
+      audioEl.current = new Audio(myAudioUrl)
+      audioEl.current.play()
+    } catch (e) {}
+  }
+
   const go = step => {
+    setVoiceLevel('')
+    setVoiceMsg('')
+    setVoiceMode('idle')
+    setTyped('')
+    setVoiceDebug('')
     const next = idx + step
     if (next < 0) return
     if (next >= words.length) {
@@ -116,6 +215,7 @@ export default function Words() {
     }
     setOpenIdx(-1)
     setShowCn(false)
+    setMyAudioUrl(myAudios.current[words[next].en] || '')
     setIdx(next)
   }
 
@@ -221,11 +321,59 @@ export default function Words() {
             ) : null}
           </View>
         ) : null}
+
       </View>
 
+      {voiceMsg ? <Text className={'wd-voice-msg wd-voice-msg-' + voiceLevel}>{voiceMsg}</Text> : null}
+      {voiceDebug ? <Text className='wd-voice-debug'>{voiceDebug}</Text> : null}
+      {myAudioUrl ? (
+        <Text className='wd-play' onClick={playMine}>
+          ▶ 听我读的
+        </Text>
+      ) : null}
+
+      {voiceMode === 'type' ? (
+        <View className='wd-type-wrap'>
+          <View className='wd-type-row'>
+            <Input
+              className='wd-type-input'
+              value={typed}
+              placeholder={'把“' + cur.en + '”打出来'}
+              confirmType='done'
+              focus
+              onInput={e => setTyped(e.target.value)}
+              onConfirm={submitTyped}
+            />
+            <View className='wd-type-btn' onClick={submitTyped}>
+              <Text className='wd-type-btn-t'>确认</Text>
+            </View>
+          </View>
+          <Text
+            className='wd-type-back'
+            onClick={() => {
+              setVoiceMode('idle')
+              setTyped('')
+            }}
+          >
+            还是想读，再点麦克风
+          </Text>
+        </View>
+      ) : (
       <View className='wd-btns'>
-        <View className={idx === 0 ? 'wd-btn wd-btn-ghost wd-btn-off' : 'wd-btn wd-btn-ghost'} onClick={() => go(-1)}>
-          <Text className='wd-btn-t'>上一个</Text>
+        <View
+          className={'wd-btn-mic' + (voiceState === 'listen' ? ' wd-btn-mic-on' : '')}
+          onClick={startVoice}
+        >
+          {voiceState === 'listen' ? (
+            <View className='wd-typing'>
+              <View className='wd-caret' />
+              <View className='wd-typing-dot wd-typing-dot-1' />
+              <View className='wd-typing-dot wd-typing-dot-2' />
+              <View className='wd-typing-dot wd-typing-dot-3' />
+            </View>
+          ) : (
+            <View className='wd-mic-icon' />
+          )}
         </View>
         {last ? (
           <View className='wd-btn wd-btn-main' onClick={finish}>
@@ -237,7 +385,7 @@ export default function Words() {
           </View>
         )}
       </View>
-
+      )}
       <Text className='wd-tip'>看完这一课的单词，第二关的练习才会打开哦</Text>
 
       {showDone && (

@@ -253,6 +253,17 @@ export function pushWrong(item) {
   }).then(() => true).catch(() => false)
 }
 
+export function pushWrongDone(keys) {
+  if (!getSession()) return Promise.resolve(false)
+  return Taro.request({
+    url: `${API_BASE}/api/wrong/done`,
+    method: 'POST',
+    timeout: 5000,
+    header: authHeader(),
+    data: { keys }
+  }).then(() => true).catch(() => false)
+}
+
 export function pushClearWrong() {
   if (!getSession()) return Promise.resolve(false)
   return Taro.request({

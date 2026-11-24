@@ -13,6 +13,69 @@ import { API_BASE } from './config'
 export const TTS_BASE = API_BASE
 
 let audioCtx = null
+/** H5 用独立的 Audio 实例播放：复用同一个 InnerAudioContext 时，
+ *  上一段还在加载/暂停中又设 src，play() 会抛 "play() request was interrupted"，
+ *  表现为「点了不读、像卡住」。每次新建实例最稳。 */
+let h5Audio = null
+
+function isH5() {
+  return typeof window !== 'undefined' && typeof window.Audio !== 'undefined' &&
+    process.env.TARO_ENV === 'h5'
+}
+
+function stopH5() {
+  if (h5Audio) {
+    try {
+      h5Audio.pause()
+      h5Audio.src = ''
+    } catch (e) {}
+    h5Audio = null
+  }
+}
+
+function speakH5(url, onEnd) {
+  stopH5()
+  let a = null
+  try {
+    a = new window.Audio(url)
+  } catch (e) {
+    return false
+  }
+  h5Audio = a
+  a.onended = () => {
+    if (h5Audio === a) h5Audio = null
+    if (onEnd) onEnd()
+  }
+  a.onerror = () => {
+    if (h5Audio === a) h5Audio = null
+    console.warn('[tts] 播放失败', a && a.src)
+  }
+  const go = () => {
+    try {
+      const p = a.play()
+      if (p && p.catch) {
+        p.catch(() => {
+          // 被新的 load 打断时补一次
+          setTimeout(() => {
+            if (h5Audio !== a) return
+            try {
+              a.play()
+            } catch (e) {}
+          }, 300)
+        })
+      }
+    } catch (e) {}
+  }
+  if (a.readyState >= 2) go()
+  else {
+    a.addEventListener('canplay', go, { once: true })
+    // 兜底：3 秒还没 canplay 也试一次 play，让它边下边播
+    setTimeout(() => {
+      if (h5Audio === a && a.readyState < 2) go()
+    }, 3000)
+  }
+  return true
+}
 
 function getCtx() {
   if (!audioCtx) {
@@ -35,6 +98,10 @@ export function speak(text, rate = 1, onEnd) {
   if (!text || !String(text).trim()) return
   if (TTS_BASE.indexOf('your-tts-domain') >= 0) {
     console.warn('[tts] 请先在 src/utils/tts.js 里把 TTS_BASE 换成你自己的接口地址')
+  }
+  const url0 = `${TTS_BASE}/tts?text=${encodeURIComponent(text)}&rate=${rate}`
+  if (isH5()) {
+    if (speakH5(url0, onEnd)) return
   }
   const ctx = getCtx()
   try {
@@ -67,6 +134,15 @@ function warmOne(text, rate) {
   const url = `${TTS_BASE}/tts?text=${encodeURIComponent(text)}&rate=${rate}`
   if (warmed[url]) return Promise.resolve()
   warmed[url] = true
+  // H5 直接 Audio 预加载：fetch 会被 CORS 拦（服务端没给 ACAO），控制台一片红但不影响播放
+  if (isH5()) {
+    try {
+      const a = new window.Audio(url)
+      a.preload = 'auto'
+      if (a.load) a.load()
+    } catch (e) {}
+    return Promise.resolve()
+  }
   return new Promise(resolve => {
     try {
       if (typeof fetch === 'function') {
@@ -102,6 +178,7 @@ export function warmTTS(texts, rate = 1) {
 }
 
 export function stopSpeak() {
+  stopH5()
   if (audioCtx) {
     try {
       audioCtx.stop()

@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { getSession, setSession } from '../../utils/api'
+import { getSession, setSession, fetchProgress } from '../../utils/api'
 import { getGame } from '../../utils/game'
-import { getChapterProgress, countWrongPending } from '../../utils/storage'
+import { getChapterProgress, countWrongPending, applyRemote, clearLocalWrong } from '../../utils/storage'
 import { chapters as fallbackChapters } from '../../data/chapters'
 import TabBar from '../../components/tabbar'
 import GirlAvatar from '../../assets/mascot/girl-avatar.png'
@@ -17,6 +17,17 @@ export default function Me() {
   useDidShow(() => {
     setGame(getGame())
     setWrongCount(countWrongPending())
+    // 从服务端拉一次：换设备/清缓存后错题数量和「已复习」状态也能对上
+    if (getSession()) {
+      fetchProgress()
+        .then(remote => {
+          if (remote) {
+            applyRemote(remote)
+            setWrongCount(countWrongPending())
+          }
+        })
+        .catch(() => {})
+    }
   })
 
   const logout = () => {
@@ -28,6 +39,7 @@ export default function Me() {
     }).then(res => {
       if (!res.confirm) return
       setSession(null)
+      clearLocalWrong()
       Taro.reLaunch({ url: '/pages/login/index' })
     })
   }

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { loadChapters } from '../../utils/api'
+import { loadChapters, fetchProgress, getSession } from '../../utils/api'
 import { chapters as fallbackChapters } from '../../data/chapters'
-import { getWrongBook, removeWrong, markWrongDone } from '../../utils/storage'
+import { getWrongBook, removeWrong, markWrongDone, applyRemote } from '../../utils/storage'
 import { speak, stopSpeak } from '../../utils/tts'
 import { picOf, picAsset } from '../../data/pics'
 import { backOrHome } from '../../utils/nav'
@@ -30,13 +30,28 @@ export default function Wrong() {
   const [showCn, setShowCn] = useState(false)
   const [keys, setKeys] = useState([])
   const [doneLeft, setDoneLeft] = useState(null)
+  const [pickIdx, setPickIdx] = useState(null)
 
   // 一次最多看 10 条：先给没复习过的，下次进来接着给还没看的
-  useEffect(() => {
-    const l = getWrongBook()
+  const applyList = l => {
     setList(l)
     const pending = l.filter(x => !x.done)
     setKeys(pending.slice(0, BATCH).map(x => x.en || x.text))
+    setIdx(0)
+  }
+
+  useEffect(() => {
+    applyList(getWrongBook())
+    // 登录用户以服务端为准：退出登录/清缓存后也能把错题和「已复习」状态拉回来
+    if (!getSession()) return
+    fetchProgress()
+      .then(remote => {
+        if (remote) {
+          applyRemote(remote)
+          applyList(getWrongBook())
+        }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -50,6 +65,10 @@ export default function Wrong() {
   }, [])
 
   useEffect(() => () => stopSpeak(), [])
+
+  useEffect(() => {
+    setPickIdx(null)
+  }, [idx])
 
   // 单词资料：音标、例句、词块
   const wordMap = useMemo(() => {
@@ -87,7 +106,17 @@ export default function Wrong() {
         const x = (list || []).find(v => (v.en || v.text) === k) || {}
         const key = x.en || x.text || k
         const isSent = x.type === 'sentence' || (!!x.text && !x.en) || /\s/.test(key)
-        return { key, isSent, zh: x.zh || x.cn || '', chapterId: x.chapterId || '' }
+        return {
+          key,
+          isSent,
+          zh: x.zh || x.cn || '',
+          chapterId: x.chapterId || '',
+          qtype: x.type || '',
+          prompt: x.prompt || '',
+          mine: x.mine || '',
+          answer: x.answer || '',
+          options: x.options || null
+        }
       }),
     [keys, list]
   )
@@ -216,7 +245,7 @@ export default function Wrong() {
 
   if (!cur) {
     return (
-      <View className='wd-page'>
+      <View className='wd-page wr-page'>
         <View className='wd-head'>
           <View className='wr-top'>
             <View className='wd-back' onClick={() => backOrHome()}>
@@ -240,7 +269,7 @@ export default function Wrong() {
   const backId = cur.chapterId || (sentInfo && sentInfo.chapterId) || ''
 
   return (
-    <View className='wd-page'>
+    <View className='wd-page wr-page'>
       <View className='wd-head'>
         <View className='wr-top'>
           <View className='wd-back' onClick={() => backOrHome()}>
@@ -257,7 +286,107 @@ export default function Wrong() {
         </Text>
       </View>
 
-      {cur.isSent ? (
+      {cur.qtype ? (
+        <View className='wd-card wr-q-card'>
+
+
+          {cur.qtype === '句子填空' ? (
+            <View className='wr-fill'>
+              {(() => {
+                const parts = String(cur.prompt || '').split('____')
+                const before = parts[0] || ''
+                const after = parts[1] || ''
+                const full = before + (cur.answer || '') + after
+                const cn = (wordInfo && wordInfo.word && wordInfo.word.sentenceCn) || ''
+                return (
+                  <>
+                    <View className='wr-fill-sent'>
+                      <View className='wr-fill-line'>
+                        {before ? <Text className='wr-fill-t'>{before}</Text> : null}
+                        <Text className='wr-fill-blank'>{'　　'}</Text>
+                        <Text className='wr-fill-t'>{after}</Text>
+                      </View>
+                      {cn ? <Text className='wr-fill-cn'>{cn}</Text> : null}
+                      <View className='wr-fill-play' onClick={() => speak(full, 1)}>
+                        <View className='wr-fill-play-icon' />
+                      </View>
+                    </View>
+
+                    <View className='wr-fill-opts'>
+                      {(cur.options || []).map((o, i) => {
+                        const answered = pickIdx !== null
+                        const isAnswer = answered && (o.key === cur.answer || o.label === cur.answer)
+                        const isMine = answered && pickIdx === i && !isAnswer
+                        return (
+                          <View
+                            key={o.key || i}
+                            className={
+                              'wr-fill-card' +
+                              (isAnswer ? ' wr-fill-card-right' : '') +
+                              (isMine ? ' wr-fill-card-wrong' : '')
+                            }
+                            onClick={() => setPickIdx(i)}
+                          >
+                            <Text className='wr-fill-pic'>{picOf(o.key) || '🔤'}</Text>
+                            <Text className='wr-fill-en'>{o.label || o.en || o.key}</Text>
+                            <Text className='wr-fill-cn2'>{o.cn || ''}</Text>
+                          </View>
+                        )
+                      })}
+                    </View>
+                    <View className='wr-fill-actions'>
+                      <View className='wr-fill-play2' onClick={() => speak(full, 1)}>
+                        <View className='wr-fill-play-icon' />
+                      </View>
+                      <View className='wr-fill-next' onClick={() => (last ? finishBatch() : go(1))}>
+                        <Text className='wr-fill-next-t'>→</Text>
+                      </View>
+                    </View>
+                  </>
+                )
+              })()}
+            </View>
+          ) : cur.qtype === '听力选词' ? (
+            <View className='wr-q-listen'>
+              <View className='wr-q-play' onClick={() => speak(cur.answer || cur.key, 1)}>
+                <View className='wr-q-play-icon' />
+              </View>
+              <Text className='wr-q-t2'>听发音，选出你听到的单词</Text>
+            </View>
+          ) : (
+            <Text className='wr-q-prompt'>{cur.prompt || ''}</Text>
+          )}
+
+          {cur.options && cur.options.length && cur.qtype !== '句子填空' ? (
+            <View className='wr-q-opts'>
+              {cur.options.map((o, i) => {
+                const isAnswer = o.key === cur.answer || o.label === cur.answer
+                const isMine = !!cur.mine && (o.label === cur.mine || o.key === cur.mine)
+                return (
+                  <View
+                    key={o.key || i}
+                    className={'wr-q-opt' + (isAnswer ? ' wr-q-opt-right' : '') + (isMine ? ' wr-q-opt-wrong' : '')}
+                  >
+                    <Text className='wr-q-opt-en'>{o.label}</Text>
+                    {o.cn ? <Text className='wr-q-opt-cn'>{o.cn}</Text> : null}
+                  </View>
+                )
+              })}
+            </View>
+          ) : null}
+
+          {cur.qtype !== '句子填空' ? (
+            <View className='wr-fill-actions'>
+              <View className='wr-fill-next' onClick={() => (last ? finishBatch() : go(1))}>
+                <Text className='wr-fill-next-t'>→</Text>
+              </View>
+            </View>
+          ) : null}
+
+        </View>
+      ) : null}
+
+      {!cur.qtype && cur.isSent ? (
         <View className='wd-card'>
           <View className='wr-sent-row'>
             <View className='wd-sentence-play' onClick={() => speak(cur.key, 1)} />
@@ -290,12 +419,12 @@ export default function Wrong() {
               </Text>
             </View>
           ) : null}
-          {backId ? <Text className='wr-from'>出自 {chapterTitle(backId)}</Text> : null}
+
           <Text className='wr-move' onClick={drop}>
             这句我会了，移出错题本
           </Text>
         </View>
-      ) : (
+      ) : !cur.qtype ? (
         <View className='wd-card'>
           <View className='wd-pic'>
             {picAsset(en) ? (
@@ -366,30 +495,23 @@ export default function Wrong() {
             这个词我会了，移出错题本
           </Text>
         </View>
-      )}
+      ) : null}
 
-      <View className='wd-btns'>
-        <View className={idx === 0 ? 'wd-btn wd-btn-ghost wd-btn-off' : 'wd-btn wd-btn-ghost'} onClick={() => go(-1)}>
-          <Text className='wd-btn-t'>上一个</Text>
+
+
+      {cur && !cur.qtype ? (
+        <View className='wr-fill-actions'>
+          <View className='wr-fill-next' onClick={() => (last ? finishBatch() : go(1))}>
+            <Text className='wr-fill-next-t'>→</Text>
+          </View>
         </View>
-        {last ? (
-          <View className='wd-btn wd-btn-main' onClick={finishBatch}>
-            <Text className='wd-btn-t wd-btn-t-main'>这一组看完了</Text>
-          </View>
-        ) : (
-          <View className='wd-btn wd-btn-main' onClick={() => go(1)}>
-            <Text className='wd-btn-t wd-btn-t-main'>下一个</Text>
-          </View>
-        )}
-      </View>
-
-      <Text className='wd-tip'>{cur.isSent ? '点喇叭听整句，按住词块看中文' : '点单词听发音，按住例句里的词块看中文'}</Text>
+      ) : null}
 
       {doneLeft !== null && (
         <View className='wd-mask'>
           <View className='wd-modal'>
             <Text className='wd-modal-emoji'>🎉</Text>
-            <Text className='wd-modal-title'>这一组看完啦！</Text>
+            <Text className='wd-modal-title'>哇，好棒呀！</Text>
             <Text className='wd-modal-sub'>
               {doneLeft > 0
                 ? `刚才这 ${keys.length} 条错题都看过一遍，还剩 ${doneLeft} 个在等你`
