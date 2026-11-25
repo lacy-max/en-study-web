@@ -94,7 +94,16 @@ function getCtx() {
  * @param {string} text 要朗读的英文
  * @param {number} rate 语速，0.6 ~ 1.2，1 为原速
  */
+let ttsMuted = false
+
+/** 录音期间静音所有朗读：否则麦克风会把刚播报的单词一起录进去（出现"两个声音"） */
+export function muteTTS(m = true) {
+  ttsMuted = !!m
+  if (ttsMuted) stopSpeak()
+}
+
 export function speak(text, rate = 1, onEnd) {
+  if (ttsMuted) return
   if (!text || !String(text).trim()) return
   if (TTS_BASE.indexOf('your-tts-domain') >= 0) {
     console.warn('[tts] 请先在 src/utils/tts.js 里把 TTS_BASE 换成你自己的接口地址')

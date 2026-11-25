@@ -1,5 +1,6 @@
 /** 单词跟读：优先用浏览器原生 Web Speech API 识别，浏览器不支持时回退到后端 /api/asr */
 import { API_BASE } from './config'
+import { muteTTS } from './tts'
 
 /** 录音约束：开着浏览器自带的降噪/回声消除/自动增益，手机外放环境也能录清楚 */
 const AUDIO = {
@@ -190,6 +191,7 @@ function recognizeByUpload(expect, ms) {
     const finish = (err, data) => {
       if (done) return
       done = true
+      muteTTS(false)
       cleanup()
       if (err) reject(err)
       else resolve(data)
@@ -204,7 +206,7 @@ function recognizeByUpload(expect, ms) {
         setTimeout(() => rej(new Error('麦克风没有打开（授权被拦或没有设备）')), 2500)
       )
     ])
-      .then(s => {
+      .then(async s => {
         stream = s
         const mime = MediaRecorder.isTypeSupported('audio/webm')
           ? 'audio/webm'
@@ -252,8 +254,12 @@ function recognizeByUpload(expect, ms) {
             finish(new Error('连不上识别服务，检查一下网络'))
           }
         }
+        // 先把播报停掉、等扬声器余音散掉，再开麦：否则录进去是"播音+人声"两股声音
+        muteTTS(true)
+        await new Promise(r => setTimeout(r, 320))
+        if (done) return
         rec.start(200)
-        // 静音自动截止：开口后停顿够久才停；但至少录够 1.7 秒，避免把单词截断
+        // 静音自动截止：开口后停顿 1 秒才停；至少录够 1.5 秒，避免把单词截断
         const startedAt = Date.now()
         let lastVoiceAt = 0
         let sawVoice = false
@@ -288,7 +294,7 @@ function recognizeByUpload(expect, ms) {
                 lastVoiceAt = now
               }
               const tooLong = now - startedAt > ms
-              const ended = sawVoice && now - lastVoiceAt > 1200 && now - startedAt > 1700
+              const ended = sawVoice && now - lastVoiceAt > 1000 && now - startedAt > 1500
               if ((tooLong || ended) && rec.state !== 'inactive') {
                 try {
                   rec.stop()
