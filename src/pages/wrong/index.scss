@@ -408,3 +408,34 @@
 .wr-fill {
   width: 100%;
 }
+
+.wr-listen-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wr-listen-play {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #eef1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wr-lcard-opts {
+  margin-top: 20px;
+}
+
+.wr-lcard {
+  min-height: 120px;
+  justify-content: center;
+}
+
+.wr-lcard .wr-fill-en {
+  font-size: 36px;
+  margin: 0;
+}

@@ -636,7 +636,16 @@ export default function Practice({ fixedMode }) {
       playWrong()
       buzz()
       addScore(false)
-      addWrong({ en: listenQ.word.en, cn: listenQ.word.cn, chapterId })
+      addWrong({
+        en: listenQ.word.en,
+        cn: listenQ.word.cn,
+        chapterId,
+        type: '听力拼句',
+        prompt: '听句子，用词块拼出你听到的内容',
+        answer: listenQ.word.sentence,
+        mine: ans,
+        options: null
+      })
     }
   }
 
@@ -654,7 +663,16 @@ export default function Practice({ fixedMode }) {
       playWrong()
       buzz()
       addScore(false)
-      addWrong({ en: listenQ.word.en, cn: listenQ.word.cn, chapterId })
+      addWrong({
+        en: listenQ.word.en,
+        cn: listenQ.word.cn,
+        chapterId,
+        type: '听力选词',
+        prompt: '听发音，选出你听到的单词',
+        answer: listenQ.word.en,
+        mine: opt.label || opt.key,
+        options: (listenQ.options || []).map(o => ({ key: o.key, label: o.label }))
+      })
     }
   }
 

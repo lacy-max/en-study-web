@@ -347,17 +347,50 @@ export default function Wrong() {
               })()}
             </View>
           ) : cur.qtype === '听力选词' ? (
-            <View className='wr-q-listen'>
-              <View className='wr-q-play' onClick={() => speak(cur.answer || cur.key, 1)}>
-                <View className='wr-q-play-icon' />
+            <>
+              <View className='wr-listen-head'>
+                <View className='wr-listen-play' onClick={() => speak(cur.answer || cur.key, 1)}>
+                  <View className='wr-fill-play-icon' />
+                </View>
               </View>
-              <Text className='wr-q-t2'>听发音，选出你听到的单词</Text>
-            </View>
+
+              {cur.options && cur.options.length ? (
+                <View className='wr-fill-opts wr-lcard-opts'>
+                  {cur.options.map((o, i) => {
+                    const answered = pickIdx !== null
+                    const isAnswer = answered && (o.key === cur.answer || o.label === cur.answer)
+                    const isMine = answered && pickIdx === i && !isAnswer
+                    return (
+                      <View
+                        key={o.key || i}
+                        className={
+                          'wr-fill-card wr-lcard' +
+                          (isAnswer ? ' wr-fill-card-right' : '') +
+                          (isMine ? ' wr-fill-card-wrong' : '')
+                        }
+                        onClick={() => setPickIdx(i)}
+                      >
+                        <Text className='wr-fill-en'>{o.label || o.key}</Text>
+                      </View>
+                    )
+                  })}
+                </View>
+              ) : null}
+
+              <View className='wr-fill-actions'>
+                <View className='wr-fill-play2' onClick={() => speak(cur.answer || cur.key, 1)}>
+                  <View className='wr-fill-play-icon' />
+                </View>
+                <View className='wr-fill-next' onClick={() => (last ? finishBatch() : go(1))}>
+                  <Text className='wr-fill-next-t'>→</Text>
+                </View>
+              </View>
+            </>
           ) : (
             <Text className='wr-q-prompt'>{cur.prompt || ''}</Text>
           )}
 
-          {cur.options && cur.options.length && cur.qtype !== '句子填空' ? (
+          {cur.options && cur.options.length && cur.qtype !== '句子填空' && cur.qtype !== '听力选词' ? (
             <View className='wr-q-opts'>
               {cur.options.map((o, i) => {
                 const isAnswer = o.key === cur.answer || o.label === cur.answer
@@ -375,7 +408,7 @@ export default function Wrong() {
             </View>
           ) : null}
 
-          {cur.qtype !== '句子填空' ? (
+          {cur.qtype !== '句子填空' && cur.qtype !== '听力选词' ? (
             <View className='wr-fill-actions'>
               <View className='wr-fill-next' onClick={() => (last ? finishBatch() : go(1))}>
                 <Text className='wr-fill-next-t'>→</Text>
