@@ -783,7 +783,9 @@ export default function Practice({ fixedMode }) {
       }
       const heard = (r.text || '').replace(/[.,!?]/g, '').trim()
       if (!heard) {
-        setDVoiceMsg('没听清，再读一遍，或者直接打字')
+        setDVoiceMsg(r && r.dur && r.dur < 0.6
+          ? '只录到一点声音，靠近手机、清楚地读一遍'
+          : '没听清，再读一遍，或者直接打字')
       } else {
         setDInput(heard)
         setDChecked(null)

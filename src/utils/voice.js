@@ -235,6 +235,7 @@ function recognizeByUpload(expect, ms) {
               match: (data && data.match) || '',
               score: (data && data.score) || 0,
               engine: (data && data.engine) || 'server',
+              dur: (data && data.dur) || 0,
               bytes: blob.size,
               blob,
               mime: blob.type
@@ -244,7 +245,7 @@ function recognizeByUpload(expect, ms) {
           }
         }
         rec.start(200)
-        // 静音自动截止：检测到说话后，停顿 0.55 秒就停，响应快很多
+        // 静音自动截止：开口后停顿够久才停；但至少录够 1.7 秒，避免把单词截断
         const startedAt = Date.now()
         let lastVoiceAt = 0
         let sawVoice = false
@@ -279,7 +280,7 @@ function recognizeByUpload(expect, ms) {
                 lastVoiceAt = now
               }
               const tooLong = now - startedAt > ms
-              const ended = sawVoice && now - lastVoiceAt > 850 && now - startedAt > 1200
+              const ended = sawVoice && now - lastVoiceAt > 1200 && now - startedAt > 1700
               if ((tooLong || ended) && rec.state !== 'inactive') {
                 try {
                   rec.stop()
