@@ -1,6 +1,14 @@
 /** 单词跟读：优先用浏览器原生 Web Speech API 识别，浏览器不支持时回退到后端 /api/asr */
 import { API_BASE } from './config'
 
+/** 录音约束：开着浏览器自带的降噪/回声消除/自动增益，手机外放环境也能录清楚 */
+const AUDIO = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1
+}
+
 /** 归一化：小写、只留字母数字和空格 */
 function norm(v) {
   const raw = String(v || '').toLowerCase()
@@ -46,7 +54,7 @@ export function warmMic() {
     }
     if (!canRecord()) return Promise.resolve(null)
     return navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({ audio: AUDIO })
       .then(st => {
         warmStream = st
         warmAt = Date.now()
@@ -189,7 +197,7 @@ function recognizeByUpload(expect, ms) {
     // 授权弹窗没人点会一直挂着：2.5 秒没拿到流就报错，别让界面卡死
     const usable =
       warmStream && warmStream.getTracks().some(t => t.readyState === 'live') ? warmStream : null
-    const gum = usable ? Promise.resolve(usable) : navigator.mediaDevices.getUserMedia({ audio: true })
+    const gum = usable ? Promise.resolve(usable) : navigator.mediaDevices.getUserMedia({ audio: AUDIO })
     Promise.race([
       gum,
       new Promise((_, rej) =>
