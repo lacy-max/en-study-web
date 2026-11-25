@@ -728,12 +728,8 @@ export default function Practice({ fixedMode }) {
   const [dChecked, setDChecked] = useState(null)
   const [dListening, setDListening] = useState(false)
   const [dVoiceMsg, setDVoiceMsg] = useState('')
+  const voiceCancelRef = useRef(false)
   const dictWord = dictWords[dIdx] || { en: '', cn: '' }
-
-  // 进听写页先把麦克风拿到手，点语音输入时立刻开录
-  useEffect(() => {
-    if (mode === 'dictation') warmMic()
-  }, [mode])
 
   // 判题：忽略大小写、首尾空格以及标点
   const normalizeAnswer = v =>
@@ -744,6 +740,7 @@ export default function Practice({ fixedMode }) {
       .trim()
 
   const dictCheck = value => {
+    voiceCancelRef.current = true
     if (!dictWord.en || dChecked === true) return
     const ok = normalizeAnswer(value) === normalizeAnswer(dictWord.en)
     setDChecked(ok)
@@ -769,15 +766,21 @@ export default function Practice({ fixedMode }) {
     }
   }
 
-  const dictSubmit = () => dictCheck(dInput)
+  const dictSubmit = v => dictCheck(typeof v === 'string' ? v : dInput)
 
   /** 语音输入：和单词页同一套（录音上传 + 后端识别），识别结果直接填进输入框 */
   const toggleVoice = async () => {
     if (dListening) return
+    voiceCancelRef.current = false
+    warmMic()
     setDVoiceMsg('')
     setDListening(true)
     try {
       const r = await recordAndRecognize(dictWord.en || '', 3000)
+      if (voiceCancelRef.current) {
+        setDListening(false)
+        return
+      }
       const heard = (r.text || '').replace(/[.,!?]/g, '').trim()
       if (!heard) {
         setDVoiceMsg('没听清，再读一遍，或者直接打字')
@@ -1144,7 +1147,7 @@ export default function Practice({ fixedMode }) {
                     setDInput(e.detail.value)
                     if (dChecked === false) setDChecked(null)
                   }}
-                    onConfirm={dictSubmit}
+                    onConfirm={e => dictSubmit(e.detail.value)}
                   />
                   {dChecked === false && <Text className='dict-err'>❗</Text>}
                 </View>

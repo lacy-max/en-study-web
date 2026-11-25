@@ -80,10 +80,6 @@ export function addWrong(item) {
   try {
     Taro.setStorageSync(WRONG_KEY, list.slice(0, 100))
   } catch (e) {}
-  // 给个明确反馈，避免「答错了但不知道有没有记进去」
-  try {
-    Taro.showToast({ title: '已记入错题本', icon: 'none', duration: 1200 })
-  } catch (e) {}
   pushWrong(entry)
 }
 
